@@ -78,6 +78,13 @@ GET_PASSENGER_BOOKINGS = """
     ORDER BY s.departure_date DESC
 """
 
+# Count bookings for a passenger
+COUNT_PASSENGER_BOOKINGS = """
+    SELECT COUNT(*) as total
+    FROM bookings
+    WHERE passenger_id = %s
+"""
+
 # Search passengers by name
 SEARCH_PASSENGERS_BY_NAME = """
     SELECT passenger_id, first_name, last_name, email, phone_number, 
