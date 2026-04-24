@@ -1,0 +1,238 @@
+<style>
+#erd-container { padding: 1rem; background: transparent; }
+#erd svg.erDiagram .divider path { stroke-opacity: 0.5; }
+#erd svg.erDiagram .row-rect-odd path,
+#erd svg.erDiagram .row-rect-odd rect,
+#erd svg.erDiagram .row-rect-even path,
+#erd svg.erDiagram .row-rect-even rect { stroke: none !important; }
+.erd-legend { margin-top: 1.5rem; font-size: 13px; color: var(--color-text-secondary); display: flex; gap: 2rem; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 0.5rem; }
+.legend-key { width: 24px; height: 16px; border: 0.5px solid var(--color-border-secondary); border-radius: 4px; }
+.legend-key.junction { background: var(--color-background-secondary); }
+.legend-key.core { background: var(--color-background-secondary); }
+.legend-key.relation { background: var(--color-background-secondary); }
+</style>
+<div id="erd-container">
+<div id="erd"></div>
+<div class="erd-legend">
+  <div class="legend-item">
+    <span class="legend-key core"></span>
+    <span>Core tables</span>
+  </div>
+  <div class="legend-item">
+    <span class="legend-key junction"></span>
+    <span>Junction/Bridge tables</span>
+  </div>
+  <div class="legend-item">
+    <span>1:1 One-to-one | 1:M One-to-many | M:M Many-to-many</span>
+  </div>
+</div>
+</div>
+<script type="module">
+import mermaid from 'https://esm.sh/mermaid@11/dist/mermaid.esm.min.mjs';
+const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+await document.fonts.ready;
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'base',
+  fontFamily: '"Anthropic Sans", sans-serif',
+  themeVariables: {
+    darkMode: dark,
+    fontSize: '12px',
+    fontFamily: '"Anthropic Sans", sans-serif',
+    lineColor: dark ? '#888780' : '#B4B2A9',
+    textColor: dark ? '#c2c0b6' : '#3d3d3a',
+    primaryColor: dark ? '#3C3489' : '#AFA9EC',
+    primaryTextColor: dark ? '#F1EFE8' : '#26215C',
+    primaryBorderColor: dark ? '#534AB7' : '#7F77DD',
+    secondBkg: dark ? '#2C2C2A' : '#F1EFE8',
+    tertiaryColor: dark ? '#085041' : '#E1F5EE',
+  },
+});
+const erd = `erDiagram
+  PASSENGERS ||--o{ BOOKINGS : makes
+  STATIONS ||--o{ ROUTES : "source of"
+  STATIONS ||--o{ ROUTES : "destination of"
+  TRAINS ||--o{ COACHES : contains
+  TRAINS ||--o{ SCHEDULES : operates
+  TRAINS ||--o{ TRAINAMENITIES : "has (M:M)"
+  COACHES ||--o{ SEATS : contains
+  ROUTES ||--o{ SCHEDULES : covers
+  SCHEDULES ||--o{ BOOKINGS : has
+  BOOKINGS ||--o{ PAYMENTS : creates
+  BOOKINGS ||--o{ CANCELLATIONS : may_have
+  BOOKINGS ||--|| SEATS : "reserves (1:1)"
+  STAFF ||--o{ CANCELLATIONS : processes
+  STATIONS ||--o{ STATIONSERVICES : "offers (M:M)"
+  SERVICES ||--o{ STATIONSERVICES : "available_at"
+  AMENITIES ||--o{ TRAINAMENITIES : "in_train"
+
+  PASSENGERS {
+    int passenger_id PK
+    string first_name
+    string last_name
+    string email
+    string phone_number
+    date date_of_birth
+    string id_proof_type
+    string id_proof_number
+  }
+  
+  STATIONS {
+    int station_id PK
+    string station_name
+    string city
+    string state
+    string address
+    string contact_number
+  }
+
+  TRAINS {
+    int train_id PK
+    string train_name
+    string train_number
+    int total_coaches
+    string train_type
+    int capacity
+  }
+
+  COACHES {
+    int coach_id PK
+    int train_id FK
+    int coach_number
+    string coach_type
+    int total_seats
+    string coach_status
+  }
+
+  SEATS {
+    int seat_id PK
+    int coach_id FK
+    int seat_number
+    string seat_class
+    string seat_type
+    boolean is_accessible
+  }
+
+  ROUTES {
+    int route_id PK
+    int train_id FK
+    int source_station_id FK
+    int destination_station_id FK
+    decimal distance
+    int estimated_duration
+  }
+
+  SCHEDULES {
+    int schedule_id PK
+    int train_id FK
+    int route_id FK
+    time departure_time
+    time arrival_time
+    date departure_date
+    string schedule_status
+  }
+
+  BOOKINGS {
+    int booking_id PK
+    int passenger_id FK
+    int schedule_id FK
+    int seat_id FK
+    date booking_date
+    string booking_status
+    decimal fare_amount
+  }
+
+  PAYMENTS {
+    int payment_id PK
+    int booking_id FK
+    date payment_date
+    decimal payment_amount
+    string payment_method
+    string payment_status
+    string transaction_id
+  }
+
+  STAFF {
+    int staff_id PK
+    string first_name
+    string last_name
+    string email
+    string phone_number
+    string department
+    string position
+    date hire_date
+  }
+
+  SERVICES {
+    int service_id PK
+    string service_name
+    string service_description
+    decimal service_cost
+    string availability_status
+  }
+
+  STATIONSERVICES {
+    int station_service_id PK
+    int station_id FK
+    int service_id FK
+    time available_from
+    time available_till
+  }
+
+  AMENITIES {
+    int amenity_id PK
+    string amenity_name
+    string amenity_description
+    string amenity_type
+    decimal cost_per_use
+  }
+
+  TRAINAMENITIES {
+    int train_amenity_id PK
+    int train_id FK
+    int amenity_id FK
+    int quantity_available
+    date last_maintenance_date
+  }
+
+  CANCELLATIONS {
+    int cancellation_id PK
+    int booking_id FK
+    date cancellation_date
+    string cancellation_reason
+    decimal refund_amount
+    string refund_status
+    int cancelled_by_staff_id FK
+  }
+`;
+
+const { svg } = await mermaid.render('erd-svg', erd);
+document.getElementById('erd').innerHTML = svg;
+
+// Round the outermost entity box corners
+document.querySelectorAll('#erd svg.erDiagram .node').forEach(node => {
+  const firstPath = node.querySelector('path[d]');
+  if (!firstPath) return;
+  const d = firstPath.getAttribute('d');
+  const nums = d.match(/-?[\d.]+/g)?.map(Number);
+  if (!nums || nums.length < 8) return;
+  const xs = [nums[0], nums[2], nums[4], nums[6]];
+  const ys = [nums[1], nums[3], nums[5], nums[7]];
+  const x = Math.min(...xs), y = Math.min(...ys);
+  const w = Math.max(...xs) - x, h = Math.max(...ys) - y;
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.setAttribute('x', x); rect.setAttribute('y', y);
+  rect.setAttribute('width', w); rect.setAttribute('height', h);
+  rect.setAttribute('rx', '8');
+  for (const a of ['fill', 'stroke', 'stroke-width', 'class', 'style']) {
+    if (firstPath.hasAttribute(a)) rect.setAttribute(a, firstPath.getAttribute(a));
+  }
+  firstPath.replaceWith(rect);
+});
+
+// Strip borders from attribute rows
+document.querySelectorAll('#erd svg.erDiagram .row-rect-odd path, #erd svg.erDiagram .row-rect-even path').forEach(p => {
+  p.setAttribute('stroke', 'none');
+});
+</script>
