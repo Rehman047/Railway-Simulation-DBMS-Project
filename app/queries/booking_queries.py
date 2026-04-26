@@ -13,8 +13,8 @@ GET_BOOKING = """
 # Create new booking
 CREATE_BOOKING = """
     INSERT INTO bookings 
-    (passenger_id, schedule_id, seat_id, fare_amount, booking_status)
-    VALUES (%s, %s, %s, %s, %s)
+    (passenger_id, schedule_id, seat_id, booking_date, fare_amount, booking_status)
+    VALUES (%s, %s, %s, %s, %s, %s)
     RETURNING booking_id
 """
 
@@ -111,9 +111,10 @@ COUNT_BOOKINGS_BY_STATUS = """
 
 # Check if seat is booked for schedule
 CHECK_SEAT_BOOKED = """
-    SELECT COUNT(*) as is_booked
+    SELECT booking_id
     FROM bookings
     WHERE schedule_id = %s AND seat_id = %s AND booking_status != 'cancelled'
+    LIMIT 1
 """
 
 # Delete booking (soft delete - update status)
@@ -121,6 +122,45 @@ CANCEL_BOOKING = """
     UPDATE bookings
     SET booking_status = 'cancelled'
     WHERE booking_id = %s
+"""
+
+# Get available seats for a schedule
+GET_AVAILABLE_SEATS = """
+    SELECT s.seat_id, s.seat_number, s.seat_class, s.seat_type, c.coach_number
+    FROM seats s
+    JOIN coaches c ON s.coach_id = c.coach_id
+    WHERE c.coach_id IN (
+        SELECT coach_id FROM coaches 
+        WHERE train_id = (
+            SELECT train_id FROM schedules WHERE schedule_id = %s
+        )
+    )
+    AND s.seat_id NOT IN (
+        SELECT seat_id FROM bookings 
+        WHERE schedule_id = %s AND booking_status != 'cancelled'
+    )
+    ORDER BY c.coach_number, s.seat_number
+"""
+
+# List bookings by status with pagination
+LIST_BOOKINGS_BY_STATUS = """
+    SELECT b.booking_id, b.passenger_id, b.schedule_id, b.seat_id, b.booking_date, 
+           b.fare_amount, b.booking_status,
+           p.first_name, p.last_name, p.email,
+           t.train_name, t.train_number,
+           s.departure_date, s.departure_time,
+           st_src.station_name as source_station,
+           st_dst.station_name as destination_station
+    FROM bookings b
+    JOIN passengers p ON b.passenger_id = p.passenger_id
+    JOIN schedules s ON b.schedule_id = s.schedule_id
+    JOIN trains t ON s.train_id = t.train_id
+    JOIN routes r ON s.route_id = r.route_id
+    JOIN stations st_src ON r.source_station_id = st_src.station_id
+    JOIN stations st_dst ON r.destination_station_id = st_dst.station_id
+    WHERE b.booking_status = %s
+    ORDER BY b.booking_date DESC
+    LIMIT %s OFFSET %s
 """
 
 # Get pending bookings (for payment)
