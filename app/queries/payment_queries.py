@@ -6,7 +6,7 @@ SQL queries for payment operations and tracking
 # Get single payment by ID
 GET_PAYMENT = """
     SELECT payment_id, booking_id, payment_amount, payment_method, payment_date, 
-           transaction_id, payment_status, verification_date
+           status, verification_date
     FROM payments
     WHERE payment_id = %s
 """
@@ -14,7 +14,7 @@ GET_PAYMENT = """
 # Create new payment
 CREATE_PAYMENT = """
     INSERT INTO payments 
-    (booking_id, payment_amount, payment_method, transaction_id, payment_status)
+    (booking_id, payment_amount, payment_method, payment_date, status)
     VALUES (%s, %s, %s, %s, %s)
     RETURNING payment_id
 """
@@ -22,7 +22,7 @@ CREATE_PAYMENT = """
 # Get payments for a booking
 GET_BOOKING_PAYMENTS = """
     SELECT payment_id, payment_amount, payment_method, payment_date, 
-           transaction_id, payment_status, verification_date
+           status, verification_date
     FROM payments
     WHERE booking_id = %s
     ORDER BY payment_date DESC
@@ -31,7 +31,7 @@ GET_BOOKING_PAYMENTS = """
 # List all payments with pagination
 LIST_PAYMENTS = """
     SELECT p.payment_id, p.booking_id, p.payment_amount, p.payment_method, p.payment_date,
-           p.transaction_id, p.payment_status, p.verification_date,
+           p.status, p.verification_date,
            b.passenger_id, pa.first_name, pa.last_name, pa.email,
            s.departure_date, t.train_name
     FROM payments p
@@ -52,7 +52,7 @@ COUNT_PAYMENTS = """
 # Update payment status
 UPDATE_PAYMENT_STATUS = """
     UPDATE payments
-    SET payment_status = %s, verification_date = CURRENT_TIMESTAMP
+    SET status = %s, verification_date = CURRENT_TIMESTAMP
     WHERE payment_id = %s
 """
 
@@ -66,7 +66,7 @@ GET_PENDING_PAYMENTS = """
     JOIN passengers pa ON b.passenger_id = pa.passenger_id
     JOIN schedules s ON b.schedule_id = s.schedule_id
     JOIN trains t ON s.train_id = t.train_id
-    WHERE p.payment_status = 'pending'
+    WHERE p.status = 'Pending'
     ORDER BY p.payment_date
 """
 
@@ -81,23 +81,15 @@ GET_COMPLETED_PAYMENTS = """
     JOIN passengers pa ON b.passenger_id = pa.passenger_id
     JOIN schedules s ON b.schedule_id = s.schedule_id
     JOIN trains t ON s.train_id = t.train_id
-    WHERE p.payment_status = 'completed'
+    WHERE p.status = 'Completed'
     ORDER BY p.verification_date DESC
-"""
-
-# Get payment by transaction ID
-GET_PAYMENT_BY_TRANSACTION = """
-    SELECT payment_id, booking_id, payment_amount, payment_method, payment_date, 
-           transaction_id, payment_status, verification_date
-    FROM payments
-    WHERE transaction_id = %s
 """
 
 # Count payments by status
 COUNT_PAYMENTS_BY_STATUS = """
-    SELECT payment_status, COUNT(*) as count
+    SELECT status, COUNT(*) as count
     FROM payments
-    GROUP BY payment_status
+    GROUP BY status
 """
 
 # Get total revenue (completed payments)
