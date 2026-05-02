@@ -38,13 +38,13 @@ class BookingService:
                 if not cursor.fetchone():
                     return {'success': False, 'error': 'Passenger not found'}
                 
-                # 2. Check schedule exists and is active
+                # 2. Check schedule exists
                 cursor.execute(
-                    "SELECT schedule_id FROM schedules WHERE schedule_id = %s AND status = 'Active'",
+                    "SELECT schedule_id FROM schedules WHERE schedule_id = %s",
                     (schedule_id,)
                 )
                 if not cursor.fetchone():
-                    return {'success': False, 'error': 'Schedule not found or inactive'}
+                    return {'success': False, 'error': 'Schedule not found'}
                 
                 # 3. Check seat exists
                 cursor.execute("SELECT seat_id FROM seats WHERE seat_id = %s", (seat_id,))
@@ -63,7 +63,7 @@ class BookingService:
                 # 5. Create booking with status 'Pending'
                 cursor.execute(
                     CREATE_BOOKING,
-                    (passenger_id, schedule_id, seat_id, datetime.now().date(), fare_amount, 'Pending')
+                    (passenger_id, schedule_id, seat_id, datetime.now().date(), fare_amount, 'pending')
                 )
                 booking_id = cursor.fetchone()[0]
                 
@@ -111,19 +111,19 @@ class BookingService:
                 cursor = conn.cursor()
                 
                 # 1. Get booking details
-                cursor.execute("SELECT booking_id, status FROM bookings WHERE booking_id = %s", (booking_id,))
+                cursor.execute("SELECT booking_id, booking_status FROM bookings WHERE booking_id = %s", (booking_id,))
                 booking = cursor.fetchone()
                 
                 if not booking:
                     return {'success': False, 'error': 'Booking not found'}
                 
-                if booking[1] == 'Cancelled':
+                if booking[1] == 'cancelled':
                     cursor.close()
                     return {'success': False, 'error': 'Booking already cancelled'}
                 
-                # 2. Update booking status to Cancelled
+                # 2. Update booking status to cancelled
                 cursor.execute(
-                    "UPDATE bookings SET status = 'Cancelled' WHERE booking_id = %s",
+                    "UPDATE bookings SET booking_status = 'cancelled' WHERE booking_id = %s",
                     (booking_id,)
                 )
                 
