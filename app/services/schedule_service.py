@@ -172,7 +172,7 @@ class ScheduleService:
                 
                 # 3. Update schedule status
                 cursor.execute(
-                    "UPDATE schedules SET status = 'Cancelled' WHERE schedule_id = %s",
+                    "UPDATE schedules SET schedule_status = 'Cancelled' WHERE schedule_id = %s",
                     (schedule_id,)
                 )
                 
@@ -189,7 +189,7 @@ class ScheduleService:
     def get_schedule_with_details(schedule_id):
         """Get full schedule details with train and route info"""
         return Database.fetch_one(
-            """SELECT s.schedule_id, s.departure_date, s.departure_time, s.arrival_time, s.status,
+            """SELECT s.schedule_id, s.departure_date, s.departure_time, s.arrival_time, s.schedule_status,
                       t.train_id, t.train_name, t.train_number, t.train_type, t.total_capacity,
                       r.route_id, r.distance_km, r.estimated_duration_hours,
                       st_src.station_id as source_station_id, st_src.station_name as source_station,
