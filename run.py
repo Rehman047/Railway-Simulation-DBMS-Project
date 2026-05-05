@@ -9,24 +9,8 @@ from app import create_app
 app = create_app()
 
 
-@app.route('/', methods=['GET'])
-def index():
-    """Health check endpoint"""
-    return {
-        'success': True,
-        'message': 'Railway DBMS API is running',
-        'version': '1.0.0',
-        'endpoints': {
-            'passengers': '/api/passengers',
-            'trains': '/api/trains',
-            'stations': '/api/stations',
-            'schedules': '/api/schedules',
-            'bookings': '/api/bookings',
-            'payments': '/api/payments',
-            'cancellations': '/api/cancellations',
-            'analytics': '/api/analytics'
-        }
-    }, 200
+# The root '/' route is now handled by the views blueprint (dashboard HTML page).
+# API endpoints are still available under /api/*
 
 
 @app.route('/health', methods=['GET'])

@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — Railway DBMS{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}Live overview of your railway system{% endblock %}
+
+{% block content %}
+
+<!-- ── Stat Cards ──────────────────────────────────────────── -->
+<div class="stats-grid">
+
+    <div class="stat-card">
+        <div class="stat-icon blue">🚆</div>
+        <div class="stat-info">
+            <div class="stat-value">{{ summary.total_trains or 0 }}</div>
+            <div class="stat-label">Total Trains</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon cyan">🏛️</div>
+        <div class="stat-info">
+            <div class="stat-value">{{ summary.total_stations or 0 }}</div>
+            <div class="stat-label">Stations</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon purple">👥</div>
+        <div class="stat-info">
+            <div class="stat-value">{{ summary.total_passengers or 0 }}</div>
+            <div class="stat-label">Registered Passengers</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon green">🎫</div>
+        <div class="stat-info">
+            <div class="stat-value">{{ summary.total_bookings or 0 }}</div>
+            <div class="stat-label">Total Bookings</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon yellow">⏳</div>
+        <div class="stat-info">
+            <div class="stat-value">{{ summary.pending_payments or 0 }}</div>
+            <div class="stat-label">Pending Payments</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon red">❌</div>
+        <div class="stat-info">
+            <div class="stat-value">{{ summary.cancelled_bookings or 0 }}</div>
+            <div class="stat-label">Cancelled Bookings</div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ── Main Grid ───────────────────────────────────────────── -->
+<div class="dashboard-grid">
+
+    <!-- Recent Bookings -->
+    <div class="card full-width">
+        <div class="card-header">
+            <div>
+                <h3>Recent Bookings</h3>
+                <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">Last 10 bookings across all
+                    schedules</p>
+            </div>
+            <a href="{{ url_for('views.bookings') }}" class="btn btn-outline btn-sm">View All →</a>
+        </div>
+        <div class="table-wrap">
+            {% if recent_bookings %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Booking ID</th>
+                        <th>Passenger</th>
+                        <th>Schedule</th>
+                        <th>From → To</th>
+                        <th>Fare (PKR)</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in recent_bookings %}
+                    <tr>
+                        <td>#{{ b.booking_id }}</td>
+                        <td>{{ b.first_name }} {{ b.last_name }}</td>
+                        <td>{{ b.departure_date }} {{ b.departure_time }}</td>
+                        <td>{{ b.source_station }} → {{ b.destination_station }}</td>
+                        <td>{{ "{:,.0f}".format(b.fare_amount) }}</td>
+                        <td>
+                            {% if b.booking_status == 'Confirmed' or b.booking_status == 'confirmed' %}
+                            <span class="badge badge-success">✓ Confirmed</span>
+                            {% elif b.booking_status == 'Pending' or b.booking_status == 'pending' %}
+                            <span class="badge badge-warning">⏳ Pending</span>
+                            {% elif b.booking_status == 'Cancelled' or b.booking_status == 'cancelled' %}
+                            <span class="badge badge-danger">✗ Cancelled</span>
+                            {% else %}
+                            <span class="badge badge-default">{{ b.booking_status }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">🎫</div>
+                No bookings found yet.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Top Routes -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Top Routes by Bookings</h3>
+        </div>
+        <div class="table-wrap">
+            {% if top_routes %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Route</th>
+                        <th>Bookings</th>
+                        <th>Revenue</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in top_routes %}
+                    <tr>
+                        <td>{{ r.source_station }} → {{ r.destination_station }}</td>
+                        <td>{{ r.total_bookings }}</td>
+                        <td>PKR {{ "{:,.0f}".format(r.total_revenue or 0) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">🗺️</div>
+                No route data yet.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- System Info -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Booking Breakdown</h3>
+        </div>
+        <div class="card-body">
+            <div class="info-list">
+                <div class="info-row">
+                    <span class="label">✓ Confirmed</span>
+                    <span class="value" style="color:var(--success)">{{ summary.confirmed_bookings or 0 }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">⏳ Pending</span>
+                    <span class="value" style="color:var(--warning)">{{ summary.pending_payments or 0 }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">✗ Cancelled</span>
+                    <span class="value" style="color:var(--danger)">{{ summary.cancelled_bookings or 0 }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">🗓️ Active Schedules</span>
+                    <span class="value">{{ summary.active_schedules or 0 }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

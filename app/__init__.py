@@ -32,6 +32,11 @@ def create_app():
 
 def register_blueprints(app):
     """Register all Flask blueprints"""
+    # HTML view pages (server-side rendered)
+    from app.routes.views import views_bp
+    app.register_blueprint(views_bp)
+
+    # JSON API blueprints
     from app.routes.passengers import passengers_bp
     from app.routes.trains import trains_bp
     from app.routes.stations import stations_bp
