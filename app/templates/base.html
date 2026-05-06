@@ -6,6 +6,8 @@
   <meta name="description" content="Railway DBMS — Manage trains, bookings, passengers, and schedules." />
   <title>{% block title %}Railway DBMS{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/forms.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tables.css') }}" />
 </head>
 <body>
 <div class="layout">
@@ -89,5 +91,6 @@
 
   </div>
 </div>
+<script src="{{ url_for('static', filename='js/utils.js') }}"></script>
 </body>
 </html>

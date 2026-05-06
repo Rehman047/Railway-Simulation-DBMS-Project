@@ -1,0 +1,281 @@
+/* ============================================================
+   Railway DBMS - Table Styles
+   ============================================================ */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table thead {
+  background: rgba(48, 54, 61, 0.4);
+  border-bottom: 2px solid var(--border);
+}
+
+.table thead th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 11px;
+}
+
+.table tbody tr {
+  border-bottom: 1px solid var(--border-light);
+  transition: all var(--transition);
+}
+
+.table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.table tbody td {
+  padding: 12px 16px;
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+.table.table-striped tbody tr:nth-child(odd) {
+  background: rgba(22, 27, 34, 0.5);
+}
+
+.table.table-striped tbody tr:nth-child(odd):hover {
+  background: var(--bg-hover);
+}
+
+/* Table Actions */
+.table-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all var(--transition);
+}
+
+.btn-icon:hover {
+  background: var(--bg-hover);
+  color: var(--accent);
+}
+
+/* Table Links */
+.link-btn {
+  color: var(--accent);
+  font-weight: 500;
+  transition: color var(--transition);
+}
+
+.link-btn:hover {
+  color: var(--accent-light);
+  text-decoration: underline;
+}
+
+/* Table Wrapper for Scrolling */
+.table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius-sm);
+}
+
+.table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Badges in Tables */
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.badge-success {
+  background: rgba(34, 197, 94, 0.2);
+  color: var(--success);
+}
+
+.badge-danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--danger);
+}
+
+.badge-warning {
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--warning);
+}
+
+.badge-info {
+  background: rgba(6, 182, 212, 0.2);
+  color: var(--info);
+}
+
+.badge-secondary {
+  background: rgba(139, 148, 158, 0.2);
+  color: var(--text-secondary);
+}
+
+/* Status Badges */
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.status-dot.online {
+  background: var(--success);
+  box-shadow: 0 0 8px var(--success);
+}
+
+.status-dot.offline {
+  background: var(--danger);
+}
+
+.status-dot.pending {
+  background: var(--warning);
+}
+
+/* Empty State */
+.table-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+}
+
+.table-empty svg {
+  width: 48px;
+  height: 48px;
+  opacity: 0.5;
+  margin-bottom: 16px;
+}
+
+.table-empty p {
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Table Header with Title */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--border-light);
+  gap: 12px;
+}
+
+.card-header h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.card-header p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 20px;
+}
+
+.page-info {
+  color: var(--text-secondary);
+  font-size: 13px;
+  min-width: 80px;
+  text-align: center;
+}
+
+.btn-pagination {
+  padding: 8px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all var(--transition);
+}
+
+.btn-pagination:hover {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn-pagination:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Table Sorting */
+.sortable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.sortable:hover {
+  color: var(--accent);
+}
+
+.sortable::after {
+  content: '⇅';
+  margin-left: 6px;
+  opacity: 0.5;
+  transition: opacity var(--transition);
+}
+
+.sortable.sorted::after {
+  opacity: 1;
+}
+
+/* Responsive Table Adjustments */
+@media (max-width: 768px) {
+  .table {
+    font-size: 12px;
+  }
+
+  .table thead th,
+  .table tbody td {
+    padding: 8px 12px;
+  }
+
+  .table thead th {
+    font-size: 10px;
+  }
+
+  .btn-icon {
+    padding: 2px 4px;
+    font-size: 14px;
+  }
+}
