@@ -34,10 +34,10 @@ CREATE_PASSENGER = """
     RETURNING passenger_id
 """
 
-# Update passenger
+# Update passenger contact details (email and phone only)
 UPDATE_PASSENGER = """
     UPDATE passengers
-    SET first_name = %s, last_name = %s, email = %s, phone_number = %s, id_proof_type = %s
+    SET email = %s, phone_number = %s
     WHERE passenger_id = %s
 """
 
