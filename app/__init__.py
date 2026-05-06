@@ -45,6 +45,7 @@ def register_blueprints(app):
     from app.routes.payments import payments_bp
     from app.routes.cancellations import cancellations_bp
     from app.routes.analytics import analytics_bp
+    from app.routes.staff import staff_bp
     
     app.register_blueprint(passengers_bp)
     app.register_blueprint(trains_bp)
@@ -54,6 +55,7 @@ def register_blueprints(app):
     app.register_blueprint(payments_bp)
     app.register_blueprint(cancellations_bp)
     app.register_blueprint(analytics_bp)
+    app.register_blueprint(staff_bp)
 
 
 def register_error_handlers(app):

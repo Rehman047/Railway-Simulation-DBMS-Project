@@ -157,3 +157,68 @@ def dashboard_summary():
     """High-level summary metrics for the dashboard. No params required."""
     data = AnalyticsService.get_dashboard_summary()
     return jsonify({'success': True, 'data': data}), 200
+
+
+@analytics_bp.route('/revenue', methods=['GET'])
+def revenue():
+    """
+    Total revenue per route using the revenue_by_route database view.
+    Optional query params: from_date, to_date (YYYY-MM-DD) to further filter.
+    """
+    from app.db import Database
+
+    from_date = request.args.get('from_date', type=str)
+    to_date   = request.args.get('to_date',   type=str)
+
+    if from_date and not Validators.validate_date(from_date):
+        return jsonify({'success': False, 'error': 'from_date must be in YYYY-MM-DD format'}), 400
+    if to_date and not Validators.validate_date(to_date):
+        return jsonify({'success': False, 'error': 'to_date must be in YYYY-MM-DD format'}), 400
+
+    # The view already aggregates all time; filter on top if dates supplied
+    if from_date and to_date:
+        data = Database.fetch_all(
+            """SELECT rrv.route_id, rrv.source_station, rrv.destination_station,
+                      rrv.total_bookings, rrv.total_revenue, rrv.avg_fare
+               FROM revenue_by_route rrv
+               JOIN routes r ON rrv.route_id = r.route_id
+               JOIN schedules s ON r.route_id = s.route_id
+               JOIN bookings b ON s.schedule_id = b.schedule_id
+               JOIN payments py ON b.booking_id = py.booking_id
+               WHERE py.payment_date::DATE BETWEEN %s AND %s
+                 AND LOWER(py.payment_status) = 'completed'
+               GROUP BY rrv.route_id, rrv.source_station, rrv.destination_station,
+                        rrv.total_bookings, rrv.total_revenue, rrv.avg_fare""",
+            (from_date, to_date)
+        )
+    else:
+        data = Database.fetch_all("SELECT * FROM revenue_by_route")
+
+    return jsonify({'success': True, 'data': data, 'count': len(data)}), 200
+
+
+@analytics_bp.route('/refund-rate', methods=['GET'])
+def refund_rate():
+    """
+    Cancellation and refund statistics.
+    Optional query params: from_date, to_date (YYYY-MM-DD).
+    When omitted, returns all-time statistics.
+    """
+    from_date = request.args.get('from_date', type=str)
+    to_date   = request.args.get('to_date',   type=str)
+
+    if (from_date and not to_date) or (to_date and not from_date):
+        return jsonify({'success': False,
+                        'error': 'from_date and to_date must be provided together'}), 400
+
+    if from_date and not Validators.validate_date(from_date):
+        return jsonify({'success': False, 'error': 'from_date must be in YYYY-MM-DD format'}), 400
+    if to_date and not Validators.validate_date(to_date):
+        return jsonify({'success': False, 'error': 'to_date must be in YYYY-MM-DD format'}), 400
+
+    # Fall back to all-time range when no dates given
+    effective_from = from_date or '2000-01-01'
+    effective_to   = to_date   or '2099-12-31'
+
+    data = AnalyticsService.get_cancellation_statistics(effective_from, effective_to)
+    return jsonify({'success': True, 'data': data}), 200

@@ -4,6 +4,8 @@ REST endpoints for booking management and seat availability
 """
 from flask import Blueprint, jsonify, request
 
+from app.db import Database
+from app.queries.booking_queries import GET_PASSENGER_BOOKINGS
 from app.services.booking_service import BookingService
 from app.utils.validators import Validators
 
@@ -127,3 +129,19 @@ def cancel_booking(booking_id: int):
 
     # keep service error semantics
     return jsonify(result), 400
+
+
+@bookings_bp.route('/passenger/<int:passenger_id>', methods=['GET'])
+def get_passenger_bookings(passenger_id: int):
+    """Get all bookings for a specific passenger."""
+    bookings = Database.fetch_all(GET_PASSENGER_BOOKINGS, (passenger_id,))
+    return jsonify({'success': True, 'data': bookings, 'count': len(bookings)}), 200
+
+
+@bookings_bp.route('/available-seats/<int:schedule_id>', methods=['GET'])
+def available_seats_by_path(schedule_id: int):
+    """Get available seats for a schedule (path-param variant)."""
+    if schedule_id <= 0:
+        return jsonify({'success': False, 'error': 'Valid schedule_id is required'}), 400
+    seats = BookingService.get_available_seats(schedule_id)
+    return jsonify({'success': True, 'data': seats, 'schedule_id': schedule_id, 'count': len(seats)}), 200

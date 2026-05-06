@@ -172,3 +172,24 @@ def get_payments_by_method():
 
     result = PaymentService.get_payments_by_method(from_date=from_date, to_date=to_date)
     return jsonify({'success': True, 'data': result}), 200
+
+
+@payments_bp.route('/<int:payment_id>/verify', methods=['PUT'])
+def verify_payment(payment_id: int):
+    """
+    Verify and mark a payment as Completed.
+    Optionally accepts JSON: { "status": "Completed" | "Failed" }
+    Defaults to "Completed" if no body is sent.
+    """
+    data = request.get_json(silent=True) or {}
+    status = data.get('status', 'Completed')
+
+    valid_statuses = ['Completed', 'Pending', 'Failed', 'Refunded']
+    if status not in valid_statuses:
+        return jsonify({'success': False,
+                        'error': f'status must be one of: {", ".join(valid_statuses)}'}), 400
+
+    result = PaymentService.update_payment_status(payment_id=payment_id, status=status)
+    if result.get('success'):
+        return jsonify(result), 200
+    return jsonify(result), 400

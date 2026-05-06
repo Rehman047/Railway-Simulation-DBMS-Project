@@ -163,3 +163,35 @@ def update_cancellation_status(cancellation_id: int):
         return jsonify(result), 200
 
     return jsonify(result), 400
+
+
+@cancellations_bp.route('/pending-refunds', methods=['GET'])
+def get_pending_refunds():
+    """Get all cancellations with a pending refund (queries the pending_refunds_report view)."""
+    from app.db import Database
+    refunds = Database.fetch_all("SELECT * FROM pending_refunds_report")
+    return jsonify({'success': True, 'data': refunds, 'count': len(refunds)}), 200
+
+
+@cancellations_bp.route('/passenger/<int:passenger_id>', methods=['GET'])
+def get_passenger_cancellations(passenger_id: int):
+    """Get all cancellations for a specific passenger."""
+    from app.db import Database
+    cancellations = Database.fetch_all(
+        """SELECT c.cancellation_id, c.booking_id, c.cancellation_date,
+                  c.cancellation_reason, c.refund_amount, c.refund_status,
+                  b.fare_amount, b.booking_status,
+                  s.departure_date,
+                  st_src.station_name AS source_station,
+                  st_dst.station_name AS destination_station
+           FROM cancellations c
+           JOIN bookings  b    ON c.booking_id   = b.booking_id
+           JOIN schedules s    ON b.schedule_id  = s.schedule_id
+           JOIN routes    r    ON s.route_id     = r.route_id
+           JOIN stations st_src ON r.source_station_id      = st_src.station_id
+           JOIN stations st_dst ON r.destination_station_id = st_dst.station_id
+           WHERE b.passenger_id = %s
+           ORDER BY c.cancellation_date DESC""",
+        (passenger_id,)
+    )
+    return jsonify({'success': True, 'data': cancellations, 'count': len(cancellations)}), 200
