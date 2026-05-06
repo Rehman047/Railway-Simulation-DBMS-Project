@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}Schedules - Railway DBMS{% endblock %}
+{% block page_title %}Schedules{% endblock %}
+{% block page_subtitle %}View and manage train schedules{% endblock %}
+
+{% block content %}
+
+<div class="page-container">
+  <!-- Header with Filters -->
+  <div class="page-header">
+    <div class="filters">
+      <input type="date" id="dateFilter" class="filter-input" placeholder="Filter by date">
+      <select id="trainFilter" class="filter-select">
+        <option value="">All Trains</option>
+        <option value="EXP-001">Express 101</option>
+        <option value="INT-042">Intercity 42</option>
+        <option value="LOC-015">Local 15</option>
+      </select>
+      <select id="statusFilter" class="filter-select">
+        <option value="">All Status</option>
+        <option value="scheduled">Scheduled</option>
+        <option value="running">Running</option>
+        <option value="completed">Completed</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="showAddScheduleForm()">+ Add Schedule</button>
+  </div>
+
+  <!-- Schedules Table -->
+  <div class="card">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Schedule ID</th>
+          <th>Train</th>
+          <th>From → To</th>
+          <th>Departure Date</th>
+          <th>Departure Time</th>
+          <th>Arrival Time</th>
+          <th>Status</th>
+          <th>Available Seats</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="schedulesTable">
+        <tr>
+          <td>#101</td>
+          <td>Express 101</td>
+          <td>Delhi → Mumbai</td>
+          <td>2024-01-20</td>
+          <td>08:00 AM</td>
+          <td>04:00 PM</td>
+          <td><span class="badge badge-success">Scheduled</span></td>
+          <td><span class="available-seats">180</span></td>
+          <td>
+            <button class="btn-icon" title="View details">👁️</button>
+            <button class="btn-icon" title="Edit">✏️</button>
+            <button class="btn-icon" title="Seats">💺</button>
+          </td>
+        </tr>
+        <tr>
+          <td>#102</td>
+          <td>Intercity 42</td>
+          <td>Mumbai → Pune</td>
+          <td>2024-01-20</td>
+          <td>10:30 AM</td>
+          <td>02:30 PM</td>
+          <td><span class="badge badge-info">Running</span></td>
+          <td><span class="available-seats">120</span></td>
+          <td>
+            <button class="btn-icon" title="View details">👁️</button>
+            <button class="btn-icon" title="Edit">✏️</button>
+            <button class="btn-icon" title="Seats">💺</button>
+          </td>
+        </tr>
+        <tr>
+          <td>#103</td>
+          <td>Local 15</td>
+          <td>Bangalore → Chennai</td>
+          <td>2024-01-19</td>
+          <td>06:00 PM</td>
+          <td>11:00 PM</td>
+          <td><span class="badge badge-secondary">Completed</span></td>
+          <td><span class="available-seats">0</span></td>
+          <td>
+            <button class="btn-icon" title="View details">👁️</button>
+            <button class="btn-icon" title="Edit">✏️</button>
+            <button class="btn-icon" title="Seats">💺</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination">
+    <button class="btn-pagination">← Previous</button>
+    <span class="page-info">Page 1 of 4</span>
+    <button class="btn-pagination">Next →</button>
+  </div>
+</div>
+
+<!-- Add Schedule Modal -->
+<div id="scheduleModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Add New Schedule</h2>
+      <button class="modal-close" onclick="closeScheduleModal()">&times;</button>
+    </div>
+    <form id="scheduleForm" class="form">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Train *</label>
+          <select name="train_id" required>
+            <option value="">Select Train</option>
+            <option value="1">Express 101</option>
+            <option value="2">Intercity 42</option>
+            <option value="3">Local 15</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Route *</label>
+          <select name="route_id" required>
+            <option value="">Select Route</option>
+            <option value="1">Delhi → Mumbai</option>
+            <option value="2">Mumbai → Pune</option>
+            <option value="3">Bangalore → Chennai</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Departure Date *</label>
+          <input type="date" name="departure_date" required>
+        </div>
+        <div class="form-group">
+          <label>Departure Time *</label>
+          <input type="time" name="departure_time" required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Arrival Time *</label>
+          <input type="time" name="arrival_time" required>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select name="schedule_status">
+            <option value="scheduled">Scheduled</option>
+            <option value="running">Running</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeScheduleModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Schedule</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function showAddScheduleForm() {
+  document.getElementById('scheduleModal').style.display = 'flex';
+}
+
+function closeScheduleModal() {
+  document.getElementById('scheduleModal').style.display = 'none';
+}
+
+document.getElementById('scheduleForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  alert('Schedule added successfully!');
+  closeScheduleModal();
+});
+
+// Filter functionality
+function filterSchedules() {
+  const dateFilter = document.getElementById('dateFilter').value;
+  const trainFilter = document.getElementById('trainFilter').value.toLowerCase();
+  const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
+  
+  const rows = document.querySelectorAll('#schedulesTable tr');
+  rows.forEach(row => {
+    const date = row.cells[3].textContent;
+    const train = row.cells[1].textContent.toLowerCase();
+    const status = row.cells[6].textContent.toLowerCase();
+    
+    const dateMatch = !dateFilter || date === dateFilter;
+    const trainMatch = !trainFilter || train.includes(trainFilter);
+    const statusMatch = !statusFilter || status.includes(statusFilter);
+    
+    row.style.display = (dateMatch && trainMatch && statusMatch) ? '' : 'none';
+  });
+}
+
+document.getElementById('dateFilter').addEventListener('change', filterSchedules);
+document.getElementById('trainFilter').addEventListener('change', filterSchedules);
+document.getElementById('statusFilter').addEventListener('change', filterSchedules);
+</script>
+
+{% endblock %}

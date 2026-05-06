@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Stations - Railway DBMS{% endblock %}
+{% block page_title %}Stations{% endblock %}
+{% block page_subtitle %}View and manage railway stations{% endblock %}
+
+{% block content %}
+
+<div class="page-container">
+  <!-- Header with Search and Add Button -->
+  <div class="page-header">
+    <div class="search-bar">
+      <input type="text" id="searchInput" class="search-input" placeholder="Search by station name, city...">
+      <button class="btn-search">🔍</button>
+    </div>
+    <button class="btn btn-primary" onclick="showAddStationForm()">+ Add New Station</button>
+  </div>
+
+  <!-- Stations Table -->
+  <div class="card">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Station ID</th>
+          <th>Station Name</th>
+          <th>City</th>
+          <th>State</th>
+          <th>Contact</th>
+          <th>Services</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="stationsTable">
+        <tr>
+          <td>#1</td>
+          <td>Delhi Central</td>
+          <td>Delhi</td>
+          <td>Delhi</td>
+          <td>+91-11-XXXX-XXXX</td>
+          <td>5</td>
+          <td>
+            <button class="btn-icon" title="View details">👁️</button>
+            <button class="btn-icon" title="Edit">✏️</button>
+            <button class="btn-icon" title="Services">🏢</button>
+          </td>
+        </tr>
+        <tr>
+          <td>#2</td>
+          <td>Mumbai Central</td>
+          <td>Mumbai</td>
+          <td>Maharashtra</td>
+          <td>+91-22-XXXX-XXXX</td>
+          <td>7</td>
+          <td>
+            <button class="btn-icon" title="View details">👁️</button>
+            <button class="btn-icon" title="Edit">✏️</button>
+            <button class="btn-icon" title="Services">🏢</button>
+          </td>
+        </tr>
+        <tr>
+          <td>#3</td>
+          <td>Bangalore City</td>
+          <td>Bangalore</td>
+          <td>Karnataka</td>
+          <td>+91-80-XXXX-XXXX</td>
+          <td>4</td>
+          <td>
+            <button class="btn-icon" title="View details">👁️</button>
+            <button class="btn-icon" title="Edit">✏️</button>
+            <button class="btn-icon" title="Services">🏢</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination">
+    <button class="btn-pagination">← Previous</button>
+    <span class="page-info">Page 1 of 2</span>
+    <button class="btn-pagination">Next →</button>
+  </div>
+</div>
+
+<!-- Add/Edit Station Modal -->
+<div id="stationModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Add New Station</h2>
+      <button class="modal-close" onclick="closeStationModal()">&times;</button>
+    </div>
+    <form id="stationForm" class="form">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Station Name *</label>
+          <input type="text" name="station_name" required>
+        </div>
+        <div class="form-group">
+          <label>City *</label>
+          <input type="text" name="city" required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>State *</label>
+          <input type="text" name="state" required>
+        </div>
+        <div class="form-group">
+          <label>Contact Number</label>
+          <input type="tel" name="contact_number">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group full-width">
+          <label>Address</label>
+          <textarea name="address" rows="3"></textarea>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeStationModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Station</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function showAddStationForm() {
+  document.getElementById('stationModal').style.display = 'flex';
+}
+
+function closeStationModal() {
+  document.getElementById('stationModal').style.display = 'none';
+}
+
+document.getElementById('stationForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  alert('Station added successfully!');
+  closeStationModal();
+});
+
+// Search functionality
+document.getElementById('searchInput').addEventListener('keyup', function() {
+  const searchTerm = this.value.toLowerCase();
+  const rows = document.querySelectorAll('#stationsTable tr');
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    row.style.display = text.includes(searchTerm) ? '' : 'none';
+  });
+});
+</script>
+
+{% endblock %}

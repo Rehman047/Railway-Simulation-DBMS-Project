@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Passengers - Railway DBMS{% endblock %}
+{% block page_title %}Passengers{% endblock %}
+{% block page_subtitle %}Manage and view registered passengers{% endblock %}
+
+{% block content %}
+
+<div class="page-container">
+  <!-- Header with Search and Add Button -->
+  <div class="page-header">
+    <div class="search-bar">
+      <input type="text" id="searchInput" class="search-input" placeholder="Search by name, email, or phone...">
+      <button class="btn-search">🔍</button>
+    </div>
+    <button class="btn btn-primary" onclick="showAddPassengerForm()">+ Add New Passenger</button>
+  </div>
+
+  <!-- Passengers Table -->
+  <div class="card">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Passenger ID</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Phone Number</th>
+          <th>Age</th>
+          <th>ID Proof</th>
+          <th>Bookings</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="passengersTable">
+        <tr>
+          <td>#1</td>
+          <td>John Doe</td>
+          <td>john@example.com</td>
+          <td>9876543210</td>
+          <td>28</td>
+          <td>CNIC: 12345-1234567-1</td>
+          <td>5</td>
+          <td>
+            <button class="btn-icon" title="View details">👁️</button>
+            <button class="btn-icon" title="Edit">✏️</button>
+            <button class="btn-icon" title="Delete">🗑️</button>
+          </td>
+        </tr>
+        <tr>
+          <td>#2</td>
+          <td>Jane Smith</td>
+          <td>jane@example.com</td>
+          <td>8765432109</td>
+          <td>32</td>
+          <td>Passport: AB123456</td>
+          <td>8</td>
+          <td>
+            <button class="btn-icon" title="View details">👁️</button>
+            <button class="btn-icon" title="Edit">✏️</button>
+            <button class="btn-icon" title="Delete">🗑️</button>
+          </td>
+        </tr>
+        <tr>
+          <td>#3</td>
+          <td>Bob Johnson</td>
+          <td>bob@example.com</td>
+          <td>7654321098</td>
+          <td>45</td>
+          <td>CNIC: 54321-7654321-9</td>
+          <td>3</td>
+          <td>
+            <button class="btn-icon" title="View details">👁️</button>
+            <button class="btn-icon" title="Edit">✏️</button>
+            <button class="btn-icon" title="Delete">🗑️</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination">
+    <button class="btn-pagination">← Previous</button>
+    <span class="page-info">Page 1 of 5</span>
+    <button class="btn-pagination">Next →</button>
+  </div>
+</div>
+
+<!-- Add/Edit Passenger Modal -->
+<div id="passengerModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Add New Passenger</h2>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <form id="passengerForm" class="form">
+      <div class="form-row">
+        <div class="form-group">
+          <label>First Name *</label>
+          <input type="text" name="first_name" required>
+        </div>
+        <div class="form-group">
+          <label>Last Name *</label>
+          <input type="text" name="last_name" required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Email Address *</label>
+          <input type="email" name="email" required>
+        </div>
+        <div class="form-group">
+          <label>Phone Number *</label>
+          <input type="tel" name="phone_number" required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date of Birth *</label>
+          <input type="date" name="date_of_birth" required>
+        </div>
+        <div class="form-group">
+          <label>ID Proof Type *</label>
+          <select name="id_proof_type" required>
+            <option value="">Select ID Proof Type</option>
+            <option value="CNIC">CNIC</option>
+            <option value="Passport">Passport</option>
+            <option value="Aadhaar">Aadhaar</option>
+            <option value="License">License</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group full-width">
+          <label>ID Proof Number *</label>
+          <input type="text" name="id_proof_number" required>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Passenger</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function showAddPassengerForm() {
+  document.getElementById('passengerModal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('passengerModal').style.display = 'none';
+}
+
+document.getElementById('passengerForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  // Submit form via AJAX
+  alert('Passenger added successfully!');
+  closeModal();
+});
+
+// Search functionality
+document.getElementById('searchInput').addEventListener('keyup', function() {
+  const searchTerm = this.value.toLowerCase();
+  const rows = document.querySelectorAll('#passengersTable tr');
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    row.style.display = text.includes(searchTerm) ? '' : 'none';
+  });
+});
+</script>
+
+{% endblock %}

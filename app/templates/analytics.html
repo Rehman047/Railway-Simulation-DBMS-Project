@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - Railway DBMS{% endblock %}
+{% block page_title %}Analytics{% endblock %}
+{% block page_subtitle %}System insights and performance metrics{% endblock %}
+
+{% block content %}
+
+<div class="page-container">
+  <!-- Date Range Selector -->
+  <div class="page-header">
+    <div class="date-range">
+      <input type="date" id="startDate" class="filter-input">
+      <span> to </span>
+      <input type="date" id="endDate" class="filter-input">
+      <button class="btn btn-secondary" onclick="applyDateFilter()">Apply Filter</button>
+    </div>
+    <button class="btn btn-primary" onclick="exportReport()">📥 Export Report</button>
+  </div>
+
+  <!-- Key Metrics -->
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-label">Total Revenue</div>
+      <div class="metric-value">₹45,23,450</div>
+      <div class="metric-change positive">↑ +12.5% from last month</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Total Bookings</div>
+      <div class="metric-value">3,245</div>
+      <div class="metric-change positive">↑ +8.3% from last month</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Avg Occupancy</div>
+      <div class="metric-value">78.5%</div>
+      <div class="metric-change negative">↓ -2.1% from last month</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Cancellation Rate</div>
+      <div class="metric-value">4.2%</div>
+      <div class="metric-change positive">↓ -0.8% from last month</div>
+    </div>
+  </div>
+
+  <!-- Charts Row 1 -->
+  <div class="charts-grid">
+    <div class="card full-width">
+      <div class="card-title">Revenue Trend</div>
+      <div class="chart-placeholder" style="height: 300px;">
+        <p>📈 Revenue chart will load here (Chart.js)</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row 2 -->
+  <div class="charts-grid">
+    <div class="card">
+      <div class="card-title">Train Occupancy by Date</div>
+      <div class="chart-placeholder" style="height: 250px;">
+        <p>📊 Occupancy chart</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Booking Status Distribution</div>
+      <div class="chart-placeholder" style="height: 250px;">
+        <p>📋 Status pie chart</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row 3 -->
+  <div class="charts-grid">
+    <div class="card">
+      <div class="card-title">Top Routes by Revenue</div>
+      <div class="chart-placeholder" style="height: 250px;">
+        <p>🏆 Top routes bar chart</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Passenger Growth</div>
+      <div class="chart-placeholder" style="height: 250px;">
+        <p>📈 Growth trend</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tables -->
+  <div class="analytics-tables">
+    <div class="card">
+      <div class="card-title">Revenue by Route</div>
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Route</th>
+            <th>Total Bookings</th>
+            <th>Revenue</th>
+            <th>Avg Fare</th>
+            <th>Occupancy %</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Delhi → Mumbai</td>
+            <td>450</td>
+            <td>₹11,25,000</td>
+            <td>₹2,500</td>
+            <td>85%</td>
+          </tr>
+          <tr>
+            <td>Mumbai → Pune</td>
+            <td>320</td>
+            <td>₹5,76,000</td>
+            <td>₹1,800</td>
+            <td>72%</td>
+          </tr>
+          <tr>
+            <td>Bangalore → Chennai</td>
+            <td>280</td>
+            <td>₹2,52,000</td>
+            <td>₹900</td>
+            <td>65%</td>
+          </tr>
+          <tr>
+            <td>Hyderabad → Visakhapatnam</td>
+            <td>215</td>
+            <td>₹3,87,000</td>
+            <td>₹1,800</td>
+            <td>58%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Top Passengers</div>
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Passenger Name</th>
+            <th>Total Bookings</th>
+            <th>Total Spent</th>
+            <th>Last Booking</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Rajesh Kumar</td>
+            <td>15</td>
+            <td>₹38,500</td>
+            <td>2024-01-18</td>
+          </tr>
+          <tr>
+            <td>Priya Singh</td>
+            <td>12</td>
+            <td>₹28,800</td>
+            <td>2024-01-17</td>
+          </tr>
+          <tr>
+            <td>Amit Patel</td>
+            <td>10</td>
+            <td>₹25,000</td>
+            <td>2024-01-15</td>
+          </tr>
+          <tr>
+            <td>Neha Sharma</td>
+            <td>9</td>
+            <td>₹19,500</td>
+            <td>2024-01-14</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- System Health -->
+  <div class="card">
+    <div class="card-title">System Health Metrics</div>
+    <div class="health-grid">
+      <div class="health-metric">
+        <div class="health-label">Database Performance</div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: 92%;"></div>
+        </div>
+        <span>92% - Excellent</span>
+      </div>
+      <div class="health-metric">
+        <div class="health-label">API Response Time</div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: 88%;"></div>
+        </div>
+        <span>88% - Good</span>
+      </div>
+      <div class="health-metric">
+        <div class="health-label">Server Uptime</div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: 99.8%;"></div>
+        </div>
+        <span>99.8% - Excellent</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function applyDateFilter() {
+  const startDate = document.getElementById('startDate').value;
+  const endDate = document.getElementById('endDate').value;
+  alert('Filtering analytics from ' + startDate + ' to ' + endDate);
+  // AJAX call to backend for filtered data
+}
+
+function exportReport() {
+  alert('Exporting analytics report to CSV');
+  // AJAX call to backend for CSV export
+}
+</script>
+
+{% endblock %}

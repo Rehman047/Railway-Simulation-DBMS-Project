@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Bookings - Railway DBMS{% endblock %}
+{% block page_title %}Bookings{% endblock %}
+{% block page_subtitle %}View and manage ticket bookings{% endblock %}
+
+{% block content %}
+
+<div class="page-container">
+  <!-- Header with Filters -->
+  <div class="page-header">
+    <div class="filters">
+      <input type="text" id="searchInput" class="filter-input" placeholder="Search by booking ID, passenger...">
+      <select id="statusFilter" class="filter-select">
+        <option value="">All Status</option>
+        <option value="pending">Pending</option>
+        <option value="confirmed">Confirmed</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+      <input type="date" id="dateFilter" class="filter-input">
+    </div>
+    <button class="btn btn-primary" onclick="showAddBookingForm()">+ New Booking</button>
+  </div>
+
+  <!-- Bookings Table -->
+  <div class="card">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Booking ID</th>
+          <th>Passenger</th>
+          <th>Train</th>
+          <th>Route</th>
+          <th>Seat</th>
+          <th>Departure</th>
+          <th>Fare</th>
+          <th>Status</th>
+          <th>Payment</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="bookingsTable">
+        <tr>
+          <td>#BK-001</td>
+          <td>John Doe</td>
+          <td>Express 101</td>
+          <td>Delhi → Mumbai</td>
+          <td>A-12</td>
+          <td>2024-01-20 08:00 AM</td>
+          <td>₹2,500</td>
+          <td><span class="badge badge-success">Confirmed</span></td>
+          <td><span class="badge badge-info">Completed</span></td>
+          <td>
+            <button class="btn-icon" title="View details">👁️</button>
+            <button class="btn-icon" title="Edit">✏️</button>
+            <button class="btn-icon" title="Cancel">❌</button>
+          </td>
+        </tr>
+        <tr>
+          <td>#BK-002</td>
+          <td>Jane Smith</td>
+          <td>Intercity 42</td>
+          <td>Mumbai → Pune</td>
+          <td>B-24</td>
+          <td>2024-01-21 10:30 AM</td>
+          <td>₹1,800</td>
+          <td><span class="badge badge-warning">Pending</span></td>
+          <td><span class="badge badge-warning">Pending</span></td>
+          <td>
+            <button class="btn-icon" title="View details">👁️</button>
+            <button class="btn-icon" title="Edit">✏️</button>
+            <button class="btn-icon" title="Cancel">❌</button>
+          </td>
+        </tr>
+        <tr>
+          <td>#BK-003</td>
+          <td>Bob Johnson</td>
+          <td>Local 15</td>
+          <td>Bangalore → Chennai</td>
+          <td>C-05</td>
+          <td>2024-01-22 06:00 PM</td>
+          <td>₹900</td>
+          <td><span class="badge badge-danger">Cancelled</span></td>
+          <td><span class="badge badge-success">Refunded</span></td>
+          <td>
+            <button class="btn-icon" title="View details">👁️</button>
+            <button class="btn-icon" title="Edit">✏️</button>
+            <button class="btn-icon" title="Cancel">❌</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination">
+    <button class="btn-pagination">← Previous</button>
+    <span class="page-info">Page 1 of 6</span>
+    <button class="btn-pagination">Next →</button>
+  </div>
+</div>
+
+<!-- New Booking Modal -->
+<div id="bookingModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Create New Booking</h2>
+      <button class="modal-close" onclick="closeBookingModal()">&times;</button>
+    </div>
+    <form id="bookingForm" class="form">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Passenger *</label>
+          <select name="passenger_id" required>
+            <option value="">Select Passenger</option>
+            <option value="1">John Doe</option>
+            <option value="2">Jane Smith</option>
+            <option value="3">Bob Johnson</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Schedule *</label>
+          <select name="schedule_id" required>
+            <option value="">Select Schedule</option>
+            <option value="101">Express 101 - 2024-01-20 08:00 AM</option>
+            <option value="102">Intercity 42 - 2024-01-21 10:30 AM</option>
+            <option value="103">Local 15 - 2024-01-22 06:00 PM</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Seat *</label>
+          <select name="seat_id" required>
+            <option value="">Select Seat</option>
+            <option value="1">A-01</option>
+            <option value="2">A-02</option>
+            <option value="3">B-01</option>
+            <option value="4">B-02</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Seat Class</label>
+          <select name="seat_class">
+            <option value="economy">Economy</option>
+            <option value="business">Business</option>
+            <option value="first_class">First Class</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group full-width">
+          <label>Fare Amount *</label>
+          <input type="number" name="fare_amount" required min="0" step="0.01">
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeBookingModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create Booking</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function showAddBookingForm() {
+  document.getElementById('bookingModal').style.display = 'flex';
+}
+
+function closeBookingModal() {
+  document.getElementById('bookingModal').style.display = 'none';
+}
+
+document.getElementById('bookingForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  alert('Booking created successfully!');
+  closeBookingModal();
+});
+
+// Filter functionality
+document.getElementById('searchInput').addEventListener('keyup', function() {
+  const searchTerm = this.value.toLowerCase();
+  const rows = document.querySelectorAll('#bookingsTable tr');
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    row.style.display = text.includes(searchTerm) ? '' : 'none';
+  });
+});
+
+document.getElementById('statusFilter').addEventListener('change', function() {
+  filterBookings();
+});
+
+document.getElementById('dateFilter').addEventListener('change', function() {
+  filterBookings();
+});
+
+function filterBookings() {
+  const status = document.getElementById('statusFilter').value.toLowerCase();
+  const date = document.getElementById('dateFilter').value;
+  const rows = document.querySelectorAll('#bookingsTable tr');
+  
+  rows.forEach(row => {
+    const rowStatus = row.cells[7].textContent.toLowerCase();
+    const rowDate = row.cells[5].textContent;
+    
+    const statusMatch = !status || rowStatus.includes(status);
+    const dateMatch = !date || rowDate.includes(date);
+    
+    row.style.display = (statusMatch && dateMatch) ? '' : 'none';
+  });
+}
+</script>
+
+{% endblock %}

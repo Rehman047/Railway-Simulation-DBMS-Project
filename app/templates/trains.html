@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Trains - Railway DBMS{% endblock %}
+{% block page_title %}Trains{% endblock %}
+{% block page_subtitle %}View and manage trains in the system{% endblock %}
+
+{% block content %}
+
+<div class="page-container">
+  <!-- Header with Filters and Add Button -->
+  <div class="page-header">
+    <div class="filters">
+      <select id="statusFilter" class="filter-select">
+        <option value="">All Status</option>
+        <option value="active">Active</option>
+        <option value="maintenance">Maintenance</option>
+        <option value="inactive">Inactive</option>
+      </select>
+      <select id="typeFilter" class="filter-select">
+        <option value="">All Types</option>
+        <option value="express">Express</option>
+        <option value="intercity">Intercity</option>
+        <option value="local">Local</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="showAddTrainForm()">+ Add New Train</button>
+  </div>
+
+  <!-- Trains Table -->
+  <div class="card">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Train ID</th>
+          <th>Train Name</th>
+          <th>Train Number</th>
+          <th>Type</th>
+          <th>Capacity</th>
+          <th>Coaches</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="trainsTable">
+        <tr>
+          <td>#1</td>
+          <td>Express 101</td>
+          <td>EXP-001</td>
+          <td>Express</td>
+          <td>480</td>
+          <td>12</td>
+          <td><span class="badge badge-success">Active</span></td>
+          <td>
+            <button class="btn-icon" title="View details">👁️</button>
+            <button class="btn-icon" title="Edit">✏️</button>
+            <button class="btn-icon" title="Coaches">🚃</button>
+          </td>
+        </tr>
+        <tr>
+          <td>#2</td>
+          <td>Intercity 42</td>
+          <td>INT-042</td>
+          <td>Intercity</td>
+          <td>360</td>
+          <td>9</td>
+          <td><span class="badge badge-success">Active</span></td>
+          <td>
+            <button class="btn-icon" title="View details">👁️</button>
+            <button class="btn-icon" title="Edit">✏️</button>
+            <button class="btn-icon" title="Coaches">🚃</button>
+          </td>
+        </tr>
+        <tr>
+          <td>#3</td>
+          <td>Local 15</td>
+          <td>LOC-015</td>
+          <td>Local</td>
+          <td>240</td>
+          <td>6</td>
+          <td><span class="badge badge-warning">Maintenance</span></td>
+          <td>
+            <button class="btn-icon" title="View details">👁️</button>
+            <button class="btn-icon" title="Edit">✏️</button>
+            <button class="btn-icon" title="Coaches">🚃</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination">
+    <button class="btn-pagination">← Previous</button>
+    <span class="page-info">Page 1 of 3</span>
+    <button class="btn-pagination">Next →</button>
+  </div>
+</div>
+
+<!-- Add/Edit Train Modal -->
+<div id="trainModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Add New Train</h2>
+      <button class="modal-close" onclick="closeTrainModal()">&times;</button>
+    </div>
+    <form id="trainForm" class="form">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Train Name *</label>
+          <input type="text" name="train_name" required>
+        </div>
+        <div class="form-group">
+          <label>Train Number *</label>
+          <input type="text" name="train_number" required placeholder="e.g., EXP-001">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Train Type *</label>
+          <select name="train_type" required>
+            <option value="">Select Type</option>
+            <option value="express">Express</option>
+            <option value="intercity">Intercity</option>
+            <option value="local">Local</option>
+            <option value="sleeper">Sleeper</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Total Capacity *</label>
+          <input type="number" name="capacity" required min="100">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Total Coaches *</label>
+          <input type="number" name="total_coaches" required min="1">
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select name="status">
+            <option value="active">Active</option>
+            <option value="maintenance">Maintenance</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeTrainModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Train</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function showAddTrainForm() {
+  document.getElementById('trainModal').style.display = 'flex';
+}
+
+function closeTrainModal() {
+  document.getElementById('trainModal').style.display = 'none';
+}
+
+document.getElementById('trainForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  alert('Train added successfully!');
+  closeTrainModal();
+});
+
+// Filter functionality
+document.getElementById('statusFilter').addEventListener('change', function() {
+  filterTable();
+});
+
+document.getElementById('typeFilter').addEventListener('change', function() {
+  filterTable();
+});
+
+function filterTable() {
+  const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
+  const typeFilter = document.getElementById('typeFilter').value.toLowerCase();
+  const rows = document.querySelectorAll('#trainsTable tr');
+  
+  rows.forEach(row => {
+    const status = row.cells[6].textContent.toLowerCase();
+    const type = row.cells[3].textContent.toLowerCase();
+    
+    const statusMatch = !statusFilter || status.includes(statusFilter);
+    const typeMatch = !typeFilter || type.includes(typeFilter);
+    
+    row.style.display = (statusMatch && typeMatch) ? '' : 'none';
+  });
+}
+</script>
+
+{% endblock %}
