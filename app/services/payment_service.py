@@ -34,44 +34,49 @@ class PaymentService:
     @staticmethod
     def record_payment(booking_id, amount, method):
         """
-        Record a payment for a booking
+        Record a payment for a booking — ATOMIC TRANSACTION.
+        Both the payment INSERT and the booking status UPDATE
+        succeed together or are rolled back together.
         """
-        try:
-            # Validate booking exists
-            booking = Database.fetch_one(
-                "SELECT booking_id, fare_amount FROM bookings WHERE booking_id = %s",
-                (booking_id,)
-            )
-            
-            if not booking:
-                return {'success': False, 'error': 'Booking not found'}
-            
-            # Validate amount >= fare
-            if amount < booking['fare_amount']:
-                return {'success': False, 'error': f"Amount must be at least {booking['fare_amount']}"}
-            
-            # Validate payment method
-            valid_methods = ['Cash', 'Card', 'Online', 'Cheque']
-            if method not in valid_methods:
-                return {'success': False, 'error': f'Invalid payment method. Must be one of: {", ".join(valid_methods)}'}
-            
-            # Create payment record with status 'Completed'
-            payment_id = Database.execute_returning(
+        # Pre-transaction validation (read-only, no locks needed)
+        booking = Database.fetch_one(
+            "SELECT booking_id, fare_amount FROM bookings WHERE booking_id = %s",
+            (booking_id,)
+        )
+        if not booking:
+            return {'success': False, 'error': 'Booking not found'}
+
+        if amount < booking['fare_amount']:
+            return {'success': False, 'error': f"Amount must be at least {booking['fare_amount']}"}
+
+        valid_methods = ['Cash', 'Card', 'Online', 'Cheque']
+        if method not in valid_methods:
+            return {'success': False, 'error': f'Invalid payment method. Must be one of: {", ".join(valid_methods)}'}
+
+        # Atomic: insert payment + update booking status
+        def payment_transaction(conn):
+            cursor = conn.cursor()
+            cursor.execute(
                 CREATE_PAYMENT,
                 (booking_id, amount, method, datetime.now().date(), 'Completed')
             )
-            
-            if payment_id:
-                # Update booking status to 'Confirmed'
-                Database.execute(
-                    "UPDATE bookings SET booking_status = 'Confirmed' WHERE booking_id = %s",
-                    (booking_id,)
-                )
-                
-                return {'success': True, 'payment_id': payment_id, 'message': 'Payment recorded'}
-            else:
+            result = cursor.fetchone()
+            payment_id = result[0] if result else None
+
+            if not payment_id:
+                cursor.close()
                 return {'success': False, 'error': 'Failed to record payment'}
-        
+
+            cursor.execute(
+                "UPDATE bookings SET booking_status = 'Confirmed' WHERE booking_id = %s",
+                (booking_id,)
+            )
+            cursor.close()
+            return {'success': True, 'payment_id': payment_id, 'message': 'Payment recorded'}
+
+        try:
+            result = Database.transaction(payment_transaction)
+            return result if result else {'success': False, 'error': 'Transaction failed'}
         except Exception as e:
             return {'success': False, 'error': str(e)}
     

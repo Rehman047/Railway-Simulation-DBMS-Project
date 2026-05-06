@@ -89,7 +89,7 @@ class CancellationService:
             # Create cancellation record in transaction
             def cancellation_transaction(conn):
                 cursor = conn.cursor()
-                
+
                 # 1. Create cancellation record
                 cursor.execute(
                     CREATE_CANCELLATION,
@@ -97,23 +97,35 @@ class CancellationService:
                 )
                 result = cursor.fetchone()
                 cancellation_id = result[0] if result else None
-                
+
                 # 2. Update booking status
                 cursor.execute(
                     "UPDATE bookings SET booking_status = 'Cancelled' WHERE booking_id = %s",
                     (booking_id,)
                 )
-                
-                # 3. Create refund payment if applicable
+
+                # 3. Release seat — fetch seat_id from booking then mark available
+                cursor.execute(
+                    "SELECT seat_id FROM bookings WHERE booking_id = %s",
+                    (booking_id,)
+                )
+                seat_row = cursor.fetchone()
+                if seat_row and seat_row[0]:
+                    cursor.execute(
+                        "UPDATE seats SET availability = 'available' WHERE seat_id = %s",
+                        (seat_row[0],)
+                    )
+
+                # 4. Create refund payment if applicable
                 if refund_amount > 0:
                     cursor.execute(
-                        """INSERT INTO payments 
-                        (booking_id, payment_amount, payment_method, payment_date, status)
+                        """INSERT INTO payments
+                        (booking_id, payment_amount, payment_method, payment_date, payment_status)
                         VALUES (%s, %s, 'Refund', %s, 'Completed')
                         RETURNING payment_id""",
                         (booking_id, refund_amount, datetime.now().date())
                     )
-                
+
                 cursor.close()
                 return {
                     'success': True,
