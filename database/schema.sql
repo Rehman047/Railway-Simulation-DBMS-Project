@@ -30,6 +30,7 @@ CREATE TABLE stations (
     state VARCHAR(50) NOT NULL,
     address VARCHAR(255),
     contact_number VARCHAR(15),
+    station_photo TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -42,6 +43,7 @@ CREATE TABLE passengers (
     date_of_birth DATE NOT NULL,
     id_proof_type VARCHAR(30),
     id_proof_number VARCHAR(50),
+    profile_image TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -83,6 +85,7 @@ CREATE TABLE trains (
     capacity INTEGER NOT NULL,
     total_coaches INTEGER,
     status VARCHAR(20) DEFAULT 'active',
+    train_photo TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
