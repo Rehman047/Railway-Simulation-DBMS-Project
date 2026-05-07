@@ -5,6 +5,7 @@ Initializes the Flask app with configuration and routes
 from flask import Flask
 from app.config import get_config
 from app.db import DatabaseConnection
+from app.services.error_handler import register_error_handlers
 
 
 def create_app():
@@ -64,26 +65,3 @@ def register_blueprints(app):
     app.register_blueprint(storage_bp)
 
 
-def register_error_handlers(app):
-    """Register error handlers"""
-    
-    @app.errorhandler(404)
-    def not_found(error):
-        return {
-            'success': False,
-            'error': 'Resource not found'
-        }, 404
-    
-    @app.errorhandler(500)
-    def internal_error(error):
-        return {
-            'success': False,
-            'error': 'Internal server error'
-        }, 500
-    
-    @app.errorhandler(405)
-    def method_not_allowed(error):
-        return {
-            'success': False,
-            'error': 'Method not allowed'
-        }, 405
