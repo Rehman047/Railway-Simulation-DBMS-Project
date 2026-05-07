@@ -25,8 +25,8 @@ class Config:
     DB_PASSWORD = os.getenv('DB_PASSWORD', '')
     
     # Connection Pool Configuration
-    DB_POOL_MIN = int(os.getenv('DB_POOL_MIN', 2))
-    DB_POOL_MAX = int(os.getenv('DB_POOL_MAX', 10))
+    DB_MIN_CONN = int(os.getenv('DB_MIN_CONN', 2))
+    DB_MAX_CONN = int(os.getenv('DB_MAX_CONN', 10))
     DB_POOL_TIMEOUT = int(os.getenv('DB_POOL_TIMEOUT', 30))
     
     # Application Settings
@@ -53,37 +53,13 @@ class ProductionConfig(Config):
     TESTING = False
 
 
-# Select configuration based on environment
 def get_config():
     """Get appropriate config based on FLASK_ENV"""
     env = os.getenv('FLASK_ENV', 'development')
     
     if env == 'production':
-        return ProductionConfig
+        return ProductionConfig()
     elif env == 'testing':
-        return TestingConfig
+        return TestingConfig()
     else:
-        return DevelopmentConfig
-
-    # Flask
-    FLASK_ENV = os.getenv('FLASK_ENV', 'production')
-    DEBUG = os.getenv('FLASK_DEBUG', False)
-    
-    # Database Configuration
-    DB_HOST = os.getenv('DB_HOST', 'localhost')
-    DB_PORT = int(os.getenv('DB_PORT', 5432))
-    DB_NAME = os.getenv('DB_NAME', 'railway_db')
-    DB_USER = os.getenv('DB_USER', 'postgres')
-    DB_PASSWORD = os.getenv('DB_PASSWORD', '')
-    
-    # Connection Pool Settings
-    DB_MIN_CONN = int(os.getenv('DB_MIN_CONN', 2))
-    DB_MAX_CONN = int(os.getenv('DB_MAX_CONN', 10))
-    
-    # Database connection string
-    DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-
-
-def get_config():
-    """Return configuration object"""
-    return Config()
+        return DevelopmentConfig()
