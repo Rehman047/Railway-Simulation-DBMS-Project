@@ -102,6 +102,47 @@ def get_station_services(station_id: int):
     return jsonify({'success': True, 'data': services, 'count': len(services)}), 200
 
 
+@stations_bp.route('/<int:station_id>', methods=['PUT'])
+def update_station(station_id: int):
+    """Update station information."""
+    station = Database.fetch_one(GET_STATION, (station_id,))
+    if not station:
+        return jsonify({'success': False, 'error': 'Station not found'}), 404
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'error': 'Request body is required'}), 400
+
+    station_name = data.get('station_name', station['station_name'])
+    city = data.get('city', station['city'])
+    state = data.get('state', station['state'])
+    address = data.get('address', station['address'])
+    contact_number = data.get('contact_number', station['contact_number'])
+
+    try:
+        Database.execute(
+            "UPDATE stations SET station_name = %s, city = %s, state = %s, address = %s, contact_number = %s WHERE station_id = %s",
+            (station_name, city, state, address, contact_number, station_id)
+        )
+        return jsonify({'success': True, 'message': 'Station updated successfully'}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@stations_bp.route('/<int:station_id>', methods=['DELETE'])
+def delete_station(station_id: int):
+    """Delete a station."""
+    station = Database.fetch_one(GET_STATION, (station_id,))
+    if not station:
+        return jsonify({'success': False, 'error': 'Station not found'}), 404
+
+    try:
+        Database.execute("DELETE FROM stations WHERE station_id = %s", (station_id,))
+        return jsonify({'success': True, 'message': 'Station deleted successfully'}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @stations_bp.route('/routes/between/<int:source_id>/<int:dest_id>', methods=['GET'])
 def routes_between(source_id: int, dest_id: int):
     """
@@ -128,3 +169,18 @@ def routes_between(source_id: int, dest_id: int):
         'source_station_id': source_id,
         'destination_station_id': dest_id,
     }), 200
+
+
+@stations_bp.route('/search', methods=['GET'])
+def search_stations():
+    """Search stations by name or city."""
+    keyword = request.args.get('q', type=str)
+    
+    if not keyword or len(keyword) < 2:
+        return jsonify({'success': False, 'error': 'Search keyword must be at least 2 characters'}), 400
+    
+    stations = Database.fetch_all(
+        "SELECT station_id, station_name, city, state, address, contact_number FROM stations WHERE LOWER(station_name) LIKE LOWER(%s) OR LOWER(city) LIKE LOWER(%s) ORDER BY station_name",
+        (f"%{keyword}%", f"%{keyword}%")
+    )
+    return jsonify({'success': True, 'data': stations, 'count': len(stations)}), 200
