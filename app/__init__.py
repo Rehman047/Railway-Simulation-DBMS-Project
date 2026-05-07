@@ -19,8 +19,8 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(config)
     
-    # Initialize database connection pool
-    DatabaseConnection.init_pool(config)
+    # Set database configuration for lazy initialization
+    DatabaseConnection.set_config(config)
     
     # Register blueprints (routes)
     register_blueprints(app)

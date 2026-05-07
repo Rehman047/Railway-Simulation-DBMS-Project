@@ -1,33 +1,43 @@
 import psycopg2
 from psycopg2 import pool
 from psycopg2.extras import RealDictCursor
-from app.config import Config
 
 
 class DatabaseConnection:
     """Simple database connection wrapper using psycopg2"""
     
     _pool = None
+    _config = None
     
     @classmethod
-    def init_pool(cls, config):
-        """Initialize connection pool"""
-        if cls._pool is None:
-            cls._pool = psycopg2.pool.SimpleConnectionPool(
-                config.DB_MIN_CONN,
-                config.DB_MAX_CONN,
-                host=config.DB_HOST,
-                port=config.DB_PORT,
-                database=config.DB_NAME,
-                user=config.DB_USER,
-                password=config.DB_PASSWORD
-            )
+    def set_config(cls, config):
+        """Set configuration for lazy initialization"""
+        cls._config = config
+    
+    @classmethod
+    def init_pool(cls):
+        """Initialize connection pool lazily"""
+        if cls._pool is None and cls._config:
+            try:
+                cls._pool = psycopg2.pool.SimpleConnectionPool(
+                    cls._config.DB_MIN_CONN,
+                    cls._config.DB_MAX_CONN,
+                    host=cls._config.DB_HOST,
+                    port=cls._config.DB_PORT,
+                    database=cls._config.DB_NAME,
+                    user=cls._config.DB_USER,
+                    password=cls._config.DB_PASSWORD
+                )
+            except Exception as e:
+                print(f"Warning: Database connection not initialized: {e}")
     
     @classmethod
     def get_connection(cls):
         """Get a connection from the pool"""
         if cls._pool is None:
-            cls.init_pool(Config)
+            cls.init_pool()
+        if cls._pool is None:
+            raise Exception("Database pool not initialized. Please check your credentials.")
         return cls._pool.getconn()
     
     @classmethod
