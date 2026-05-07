@@ -1,4 +1,3 @@
-"""Trains API Routes"""
 from flask import Blueprint, jsonify, request
 
 from app.db import Database
@@ -7,6 +6,7 @@ from app.queries.train_queries import (
     GET_TRAIN_WITH_COACHES, GET_TRAIN_AMENITIES,
 )
 from app.queries.coach_queries import LIST_COACHES_BY_TRAIN
+from app.services.validators import validate_create_train
 
 trains_bp = Blueprint('trains', __name__, url_prefix='/api/trains')
 
@@ -73,19 +73,9 @@ def create_train():
     if not data:
         return jsonify({'success': False, 'error': 'Request body is required'}), 400
 
-    required = ['train_name', 'train_number', 'train_type', 'capacity', 'total_coaches']
-    for field in required:
-        if not data.get(field):
-            return jsonify({'success': False, 'error': f'Missing required field: {field}'}), 400
-
-    try:
-        capacity      = int(data['capacity'])
-        total_coaches = int(data['total_coaches'])
-    except (ValueError, TypeError):
-        return jsonify({'success': False, 'error': 'capacity and total_coaches must be integers'}), 400
-
-    if capacity <= 0 or total_coaches <= 0:
-        return jsonify({'success': False, 'error': 'capacity and total_coaches must be positive'}), 400
+    errors = validate_create_train(data)
+    if errors:
+        return jsonify({'success': False, 'errors': errors}), 400
 
     # Check train_number uniqueness
     existing = Database.fetch_one(

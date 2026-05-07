@@ -7,6 +7,7 @@ from flask import Blueprint, jsonify, request
 from app.db import Database
 from app.queries.booking_queries import GET_PASSENGER_BOOKINGS
 from app.services.booking_service import BookingService
+from app.services.validators import validate_create_booking
 from app.utils.validators import Validators
 
 bookings_bp = Blueprint('bookings', __name__, url_prefix='/api/bookings')
@@ -65,9 +66,9 @@ def create_booking():
     if not data:
         return jsonify({'success': False, 'error': 'Request body is required'}), 400
 
-    errors = Validators.validate_booking_data(data)
+    errors = validate_create_booking(data)
     if errors:
-        return jsonify({'success': False, 'error': errors}), 400
+        return jsonify({'success': False, 'errors': errors}), 400
 
     result = BookingService.create_booking(
         passenger_id=data['passenger_id'],
@@ -78,7 +79,6 @@ def create_booking():
 
     if result.get('success'):
         return jsonify(result), 201
-
     return jsonify(result), 400
 
 

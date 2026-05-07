@@ -4,6 +4,7 @@ REST endpoints for passenger management
 """
 from flask import Blueprint, request, jsonify
 from app.services.passenger_service import PassengerService
+from app.services.validators import validate_create_passenger, validate_update_passenger
 
 # Create blueprint for passenger routes
 passengers_bp = Blueprint('passengers', __name__, url_prefix='/api/passengers')
@@ -50,38 +51,34 @@ def get_passenger(passenger_id):
 def create_passenger():
     """Create a new passenger"""
     data = request.get_json()
-    
     if not data:
-        return jsonify({
-            'success': False,
-            'error': 'Request body is required'
-        }), 400
-    
+        return jsonify({'success': False, 'error': 'Request body is required'}), 400
+
+    errors = validate_create_passenger(data)
+    if errors:
+        return jsonify({'success': False, 'errors': errors}), 400
+
     result = PassengerService.create_passenger(data)
-    
     if result['success']:
         return jsonify(result), 201
-    else:
-        return jsonify(result), 400
+    return jsonify(result), 400
 
 
 @passengers_bp.route('/<int:passenger_id>', methods=['PUT'])
 def update_passenger(passenger_id):
     """Update passenger information"""
     data = request.get_json()
-    
     if not data:
-        return jsonify({
-            'success': False,
-            'error': 'Request body is required'
-        }), 400
-    
+        return jsonify({'success': False, 'error': 'Request body is required'}), 400
+
+    errors = validate_update_passenger(data)
+    if errors:
+        return jsonify({'success': False, 'errors': errors}), 400
+
     result = PassengerService.update_passenger(passenger_id, data)
-    
     if result['success']:
         return jsonify(result), 200
-    else:
-        return jsonify(result), 400
+    return jsonify(result), 400
 
 
 @passengers_bp.route('/<int:passenger_id>', methods=['DELETE'])

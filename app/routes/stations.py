@@ -1,4 +1,3 @@
-"""Stations API Routes"""
 from flask import Blueprint, jsonify, request
 
 from app.db import Database
@@ -6,6 +5,7 @@ from app.queries.station_queries import (
     GET_STATION, LIST_STATIONS, COUNT_STATIONS,
     CREATE_STATION, GET_STATION_SERVICES,
 )
+from app.services.validators import validate_create_station
 
 stations_bp = Blueprint('stations', __name__, url_prefix='/api/stations')
 
@@ -66,9 +66,9 @@ def create_station():
     if not data:
         return jsonify({'success': False, 'error': 'Request body is required'}), 400
 
-    for field in ['station_name', 'city', 'state']:
-        if not data.get(field):
-            return jsonify({'success': False, 'error': f'Missing required field: {field}'}), 400
+    errors = validate_create_station(data)
+    if errors:
+        return jsonify({'success': False, 'errors': errors}), 400
 
     # Check for duplicate name in same city
     existing = Database.fetch_one(
