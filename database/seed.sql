@@ -22,7 +22,7 @@ INSERT INTO staff (first_name, last_name, email, phone_number, position, hire_da
 ('Ali', 'Hussain', 'ali.hussain@railway.com', '0300-5555555', 'Agent', '2023-03-15');
 
 -- Insert Trains
-INSERT INTO trains (train_name, train_number, train_type, total_capacity, total_coaches) VALUES
+INSERT INTO trains (train_name, train_number, train_type, capacity, total_coaches) VALUES
 ('Express One', 'EX-001', 'Express', 500, 10),
 ('Local Two', 'LC-002', 'Local', 300, 6),
 ('Luxury Premium', 'LX-003', 'Luxury', 200, 4),
@@ -54,7 +54,7 @@ INSERT INTO seats (coach_id, seat_number, seat_class, seat_type) VALUES
 (1, 10, 'Economy', 'Aisle');
 
 -- Insert Services
-INSERT INTO services (service_name, service_description, cost) VALUES
+INSERT INTO services (service_name, service_description, service_cost) VALUES
 ('WiFi', 'High-speed internet service', 50),
 ('Catering', 'Food and beverage service', 200),
 ('Baggage', 'Luggage handling and storage', 100),
@@ -62,7 +62,7 @@ INSERT INTO services (service_name, service_description, cost) VALUES
 ('Parking', 'Station parking facility', 150);
 
 -- Insert Amenities
-INSERT INTO amenities (amenity_name, amenity_description, cost) VALUES
+INSERT INTO amenities (amenity_name, amenity_description, cost_per_use) VALUES
 ('Air Conditioning', 'Climate controlled compartments', 100),
 ('WiFi Service', 'Internet connectivity', 50),
 ('Dining Car', 'On-board restaurant service', 200),
@@ -79,7 +79,7 @@ INSERT INTO train_amenities (train_id, amenity_id, last_maintenance_date) VALUES
 (3, 4, '2024-03-15');
 
 -- Insert Routes
-INSERT INTO routes (train_id, source_station_id, destination_station_id, distance_km, estimated_duration_hours) VALUES
+INSERT INTO routes (train_id, source_station_id, destination_station_id, distance, estimated_duration) VALUES
 (1, 1, 2, 1300, 20),
 (2, 1, 3, 1500, 24),
 (3, 1, 4, 1400, 18),
@@ -87,12 +87,12 @@ INSERT INTO routes (train_id, source_station_id, destination_station_id, distanc
 (5, 2, 5, 500, 10);
 
 -- Insert Schedules (sample for different dates)
-INSERT INTO schedules (train_id, route_id, departure_date, departure_time, arrival_time, status) VALUES
-(1, 1, '2024-05-01', '08:00:00', '04:00:00', 'Active'),
-(1, 1, '2024-05-02', '08:00:00', '04:00:00', 'Active'),
-(2, 2, '2024-05-01', '10:00:00', '10:00:00', 'Active'),
-(3, 3, '2024-05-03', '14:00:00', '08:00:00', 'Active'),
-(4, 4, '2024-05-05', '06:00:00', '02:00:00', 'Active');
+INSERT INTO schedules (train_id, route_id, departure_date, departure_time, arrival_time, schedule_status) VALUES
+(1, 1, '2024-05-01', '08:00:00', '04:00:00', 'active'),
+(1, 1, '2024-05-02', '08:00:00', '04:00:00', 'active'),
+(2, 2, '2024-05-01', '10:00:00', '10:00:00', 'active'),
+(3, 3, '2024-05-03', '14:00:00', '08:00:00', 'active'),
+(4, 4, '2024-05-05', '06:00:00', '02:00:00', 'active');
 
 -- Insert Passengers
 INSERT INTO passengers (first_name, last_name, email, phone_number, date_of_birth, id_proof_type, id_proof_number) VALUES
@@ -103,24 +103,24 @@ INSERT INTO passengers (first_name, last_name, email, phone_number, date_of_birt
 ('Omar', 'Farooq', 'omar.farooq@email.com', '0300-9000005', '1999-07-18', 'Passport', 'PAK789012');
 
 -- Insert Bookings (sample bookings for schedules)
-INSERT INTO bookings (passenger_id, schedule_id, seat_id, booking_date, fare_amount, status) VALUES
-(1, 1, 1, '2024-04-20', 2500, 'Confirmed'),
-(2, 1, 2, '2024-04-21', 2500, 'Confirmed'),
-(3, 2, 5, '2024-04-19', 3000, 'Pending'),
-(4, 3, 6, '2024-04-22', 2800, 'Confirmed'),
-(5, 4, 3, '2024-04-23', 2200, 'Confirmed');
+INSERT INTO bookings (passenger_id, schedule_id, seat_id, booking_date, fare_amount, booking_status) VALUES
+(1, 1, 1, '2024-04-20', 2500, 'confirmed'),
+(2, 1, 2, '2024-04-21', 2500, 'confirmed'),
+(3, 2, 5, '2024-04-19', 3000, 'pending'),
+(4, 3, 6, '2024-04-22', 2800, 'confirmed'),
+(5, 4, 3, '2024-04-23', 2200, 'confirmed');
 
 -- Insert Payments (corresponding to bookings)
-INSERT INTO payments (booking_id, payment_amount, payment_method, payment_date, status) VALUES
-(1, 2500, 'Card', '2024-04-20', 'Completed'),
-(2, 2500, 'Online', '2024-04-21', 'Completed'),
-(3, 3000, 'Cash', '2024-04-21', 'Pending'),
-(4, 2800, 'Card', '2024-04-22', 'Completed'),
-(5, 2200, 'Online', '2024-04-23', 'Completed');
+INSERT INTO payments (booking_id, payment_amount, payment_method, payment_date, payment_status) VALUES
+(1, 2500, 'Card', '2024-04-20', 'completed'),
+(2, 2500, 'Online', '2024-04-21', 'completed'),
+(3, 3000, 'Cash', '2024-04-21', 'pending'),
+(4, 2800, 'Card', '2024-04-22', 'completed'),
+(5, 2200, 'Online', '2024-04-23', 'completed');
 
 -- Insert Cancellations (sample cancellations)
-INSERT INTO cancellations (booking_id, cancelled_by_staff_id, cancellation_date, reason, status) VALUES
-(3, 2, '2024-04-24', 'Passenger changed plans', 'Processed');
+INSERT INTO cancellations (booking_id, cancelled_by_staff_id, cancellation_date, cancellation_reason, refund_status) VALUES
+(3, 2, '2024-04-24', 'Passenger changed plans', 'processed');
 
 -- Insert Station Services (linking stations with services)
 INSERT INTO station_services (station_id, service_id) VALUES
