@@ -177,8 +177,76 @@ function closeScheduleModal() {
 
 document.getElementById('scheduleForm').addEventListener('submit', function(e) {
   e.preventDefault();
-  alert('Schedule added successfully!');
-  closeScheduleModal();
+  
+  const formData = new FormData(this);
+  const data = {
+    train_id: parseInt(formData.get('train_id')),
+    route_id: parseInt(formData.get('route_id')),
+    departure_date: formData.get('departure_date'),
+    departure_time: formData.get('departure_time'),
+    arrival_time: formData.get('arrival_time'),
+    schedule_status: formData.get('schedule_status') || 'scheduled'
+  };
+  
+  fetch('/api/schedules', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.success) {
+      alert('Schedule added successfully! ID: ' + result.schedule_id);
+      closeScheduleModal();
+      document.getElementById('scheduleForm').reset();
+      loadSchedules();
+    } else {
+      alert('Error: ' + (result.error || result.errors?.join(', ') || 'Unknown error'));
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Failed to add schedule: ' + error.message);
+  });
+});
+
+function loadSchedules() {
+  fetch('/api/schedules?page=1&limit=20')
+    .then(response => response.json())
+    .then(result => {
+      if (result.success && result.data) {
+        const tbody = document.getElementById('schedulesTable');
+        tbody.innerHTML = '';
+        result.data.forEach(schedule => {
+          const statusBadgeClass = schedule.schedule_status === 'scheduled' ? 'badge-success' : 
+                                   schedule.schedule_status === 'running' ? 'badge-info' :
+                                   schedule.schedule_status === 'completed' ? 'badge-secondary' : 'badge-danger';
+          const row = `<tr>
+            <td>#${schedule.schedule_id}</td>
+            <td>${schedule.train_name || 'Train ' + schedule.train_id}</td>
+            <td>${schedule.source_station || 'N/A'} → ${schedule.dest_station || 'N/A'}</td>
+            <td>${schedule.departure_date}</td>
+            <td>${schedule.departure_time}</td>
+            <td>${schedule.arrival_time}</td>
+            <td><span class="badge ${statusBadgeClass}">${schedule.schedule_status}</span></td>
+            <td><span class="available-seats">${schedule.available_seats || '0'}</span></td>
+            <td>
+              <button class="btn-icon" title="View details">👁️</button>
+              <button class="btn-icon" title="Edit">✏️</button>
+              <button class="btn-icon" title="Seats">💺</button>
+            </td>
+          </tr>`;
+          tbody.innerHTML += row;
+        });
+      }
+    })
+    .catch(error => console.error('Error loading schedules:', error));
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  loadSchedules();
 });
 
 // Filter functionality

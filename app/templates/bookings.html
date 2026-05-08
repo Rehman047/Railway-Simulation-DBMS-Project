@@ -176,8 +176,76 @@ function closeBookingModal() {
 
 document.getElementById('bookingForm').addEventListener('submit', function(e) {
   e.preventDefault();
-  alert('Booking created successfully!');
-  closeBookingModal();
+  
+  const formData = new FormData(this);
+  const data = {
+    passenger_id: parseInt(formData.get('passenger_id')),
+    schedule_id: parseInt(formData.get('schedule_id')),
+    seat_id: parseInt(formData.get('seat_id')),
+    fare_amount: parseFloat(formData.get('fare_amount'))
+  };
+  
+  fetch('/api/bookings', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.success) {
+      alert('Booking created successfully! ID: ' + result.booking_id);
+      closeBookingModal();
+      document.getElementById('bookingForm').reset();
+      loadBookings();
+    } else {
+      alert('Error: ' + (result.error || result.errors?.join(', ') || 'Unknown error'));
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Failed to create booking: ' + error.message);
+  });
+});
+
+function loadBookings() {
+  fetch('/api/bookings?page=1&limit=20')
+    .then(response => response.json())
+    .then(result => {
+      if (result.success && result.data) {
+        const tbody = document.getElementById('bookingsTable');
+        tbody.innerHTML = '';
+        result.data.forEach(booking => {
+          const statusBadgeClass = booking.booking_status === 'confirmed' ? 'badge-success' : 
+                                   booking.booking_status === 'pending' ? 'badge-warning' : 'badge-danger';
+          const paymentBadgeClass = booking.payment_status === 'completed' ? 'badge-success' : 
+                                    booking.payment_status === 'pending' ? 'badge-warning' : 'badge-info';
+          const row = `<tr>
+            <td>#BK-${String(booking.booking_id).padStart(3, '0')}</td>
+            <td>${booking.passenger_name || 'Passenger ' + booking.passenger_id}</td>
+            <td>${booking.train_name || 'Train ' + booking.train_id}</td>
+            <td>${booking.route || 'N/A'}</td>
+            <td>${booking.seat_number || 'Seat ' + booking.seat_id}</td>
+            <td>${booking.departure_date || 'N/A'}</td>
+            <td>₹${booking.fare_amount || '0'}</td>
+            <td><span class="badge ${statusBadgeClass}">${booking.booking_status || 'pending'}</span></td>
+            <td><span class="badge ${paymentBadgeClass}">${booking.payment_status || 'pending'}</span></td>
+            <td>
+              <button class="btn-icon" title="View details">👁️</button>
+              <button class="btn-icon" title="Edit">✏️</button>
+              <button class="btn-icon" title="Cancel">❌</button>
+            </td>
+          </tr>`;
+          tbody.innerHTML += row;
+        });
+      }
+    })
+    .catch(error => console.error('Error loading bookings:', error));
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  loadBookings();
 });
 
 // Filter functionality

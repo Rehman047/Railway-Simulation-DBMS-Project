@@ -131,12 +131,14 @@ def create_schedule():
             }), 400
         
         # Create schedule
+        schedule_status = data.get('schedule_status', 'scheduled')
         result = ScheduleService.create_schedule(
             train_id,
             route_id,
             departure_date,
             departure_time,
-            arrival_time
+            arrival_time,
+            schedule_status
         )
         
         if result['success']:

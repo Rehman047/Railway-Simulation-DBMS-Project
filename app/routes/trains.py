@@ -87,7 +87,7 @@ def create_train():
     train_id = Database.execute_returning(
         CREATE_TRAIN,
         (data['train_name'], data['train_number'], data['train_type'],
-         capacity, total_coaches, data.get('status', 'active'))
+         data['capacity'], data['total_coaches'], data.get('status', 'active'))
     )
 
     if train_id:

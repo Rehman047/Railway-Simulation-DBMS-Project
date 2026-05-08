@@ -166,8 +166,40 @@ function closeTrainModal() {
 
 document.getElementById('trainForm').addEventListener('submit', function(e) {
   e.preventDefault();
-  alert('Train added successfully!');
-  closeTrainModal();
+  
+  const formData = new FormData(this);
+  const data = {
+    train_name: formData.get('train_name'),
+    train_number: formData.get('train_number'),
+    train_type: formData.get('train_type'),
+    capacity: parseInt(formData.get('capacity')),
+    total_coaches: parseInt(formData.get('total_coaches')),
+    status: formData.get('status')
+  };
+  
+  fetch('/api/trains', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.success) {
+      alert('Train added successfully! ID: ' + result.train_id);
+      closeTrainModal();
+      document.getElementById('trainForm').reset();
+      // Refresh trains table
+      loadTrains();
+    } else {
+      alert('Error: ' + (result.error || result.errors?.join(', ') || 'Unknown error'));
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Failed to add train: ' + error.message);
+  });
 });
 
 // Filter functionality
@@ -194,6 +226,42 @@ function filterTable() {
     row.style.display = (statusMatch && typeMatch) ? '' : 'none';
   });
 }
+
+function loadTrains() {
+  fetch('/api/trains?page=1&limit=20')
+    .then(response => response.json())
+    .then(result => {
+      if (result.success && result.data) {
+        const tbody = document.getElementById('trainsTable');
+        tbody.innerHTML = '';
+        result.data.forEach(train => {
+          const statusBadgeClass = train.status === 'active' ? 'badge-success' : 
+                                   train.status === 'maintenance' ? 'badge-warning' : 'badge-danger';
+          const row = `<tr>
+            <td>#${train.train_id}</td>
+            <td>${train.train_name}</td>
+            <td>${train.train_number}</td>
+            <td>${train.train_type}</td>
+            <td>${train.capacity}</td>
+            <td>${train.total_coaches}</td>
+            <td><span class="badge ${statusBadgeClass}">${train.status}</span></td>
+            <td>
+              <button class="btn-icon" title="View details">👁️</button>
+              <button class="btn-icon" title="Edit">✏️</button>
+              <button class="btn-icon" title="Coaches">🚃</button>
+            </td>
+          </tr>`;
+          tbody.innerHTML += row;
+        });
+      }
+    })
+    .catch(error => console.error('Error loading trains:', error));
+}
+
+// Load trains on page load
+document.addEventListener('DOMContentLoaded', function() {
+  loadTrains();
+});
 </script>
 
 {% endblock %}

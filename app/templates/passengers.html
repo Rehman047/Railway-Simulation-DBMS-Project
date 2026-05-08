@@ -127,8 +127,7 @@
             <option value="">Select ID Proof Type</option>
             <option value="CNIC">CNIC</option>
             <option value="Passport">Passport</option>
-            <option value="Aadhaar">Aadhaar</option>
-            <option value="License">License</option>
+            <option value="Driving License">Driving License</option>
           </select>
         </div>
       </div>
@@ -159,9 +158,78 @@ function closeModal() {
 
 document.getElementById('passengerForm').addEventListener('submit', function(e) {
   e.preventDefault();
-  // Submit form via AJAX
-  alert('Passenger added successfully!');
-  closeModal();
+  
+  const formData = new FormData(this);
+  const data = {
+    first_name: formData.get('first_name'),
+    last_name: formData.get('last_name'),
+    email: formData.get('email'),
+    phone_number: formData.get('phone_number'),
+    date_of_birth: formData.get('date_of_birth'),
+    id_proof_type: formData.get('id_proof_type'),
+    id_proof_number: formData.get('id_proof_number')
+  };
+  
+  fetch('/api/passengers', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.success) {
+      alert('Passenger added successfully! ID: ' + result.passenger_id);
+      closeModal();
+      document.getElementById('passengerForm').reset();
+      // Refresh passengers table
+      loadPassengers();
+    } else {
+      alert('Error: ' + (result.error || result.errors?.join(', ') || 'Unknown error'));
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Failed to add passenger: ' + error.message);
+  });
+});
+
+function loadPassengers() {
+  fetch('/api/passengers?page=1&limit=20')
+    .then(response => response.json())
+    .then(result => {
+      if (result.success && result.data) {
+        const tbody = document.getElementById('passengersTable');
+        tbody.innerHTML = '';
+        result.data.forEach(passenger => {
+          const dob = new Date(passenger.date_of_birth);
+          const age = Math.floor((new Date() - dob) / (365.25 * 24 * 60 * 60 * 1000));
+          const idProof = passenger.id_proof_type ? `${passenger.id_proof_type}: ${passenger.id_proof_number}` : 'N/A';
+          const row = `<tr>
+            <td>#${passenger.passenger_id}</td>
+            <td>${passenger.first_name} ${passenger.last_name}</td>
+            <td>${passenger.email}</td>
+            <td>${passenger.phone_number}</td>
+            <td>${age}</td>
+            <td>${idProof}</td>
+            <td>0</td>
+            <td>
+              <button class="btn-icon" title="View details">👁️</button>
+              <button class="btn-icon" title="Edit">✏️</button>
+              <button class="btn-icon" title="Delete">🗑️</button>
+            </td>
+          </tr>`;
+          tbody.innerHTML += row;
+        });
+      }
+    })
+    .catch(error => console.error('Error loading passengers:', error));
+}
+
+// Load passengers on page load
+document.addEventListener('DOMContentLoaded', function() {
+  loadPassengers();
 });
 
 // Search functionality

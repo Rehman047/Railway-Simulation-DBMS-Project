@@ -32,7 +32,7 @@ class ScheduleService:
         }
     
     @staticmethod
-    def create_schedule(train_id, route_id, departure_date, departure_time, arrival_time):
+    def create_schedule(train_id, route_id, departure_date, departure_time, arrival_time, schedule_status='scheduled'):
         """
         Create a new schedule with validation
         """
@@ -51,10 +51,10 @@ class ScheduleService:
             if not route:
                 return {'success': False, 'error': 'Route not found'}
             
-            # Create schedule with status 'Active'
+            # Create schedule with provided status
             schedule_id = Database.execute_returning(
                 CREATE_SCHEDULE,
-                (train_id, route_id, departure_date, departure_time, arrival_time, 'Active')
+                (train_id, route_id, departure_date, departure_time, arrival_time, schedule_status)
             )
             
             if schedule_id:

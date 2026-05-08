@@ -138,8 +138,70 @@ function closeStationModal() {
 
 document.getElementById('stationForm').addEventListener('submit', function(e) {
   e.preventDefault();
-  alert('Station added successfully!');
-  closeStationModal();
+  
+  const formData = new FormData(this);
+  const data = {
+    station_name: formData.get('station_name'),
+    city: formData.get('city'),
+    state: formData.get('state'),
+    contact_number: formData.get('contact_number'),
+    address: formData.get('address')
+  };
+  
+  fetch('/api/stations', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.success) {
+      alert('Station added successfully! ID: ' + result.station_id);
+      closeStationModal();
+      document.getElementById('stationForm').reset();
+      loadStations();
+    } else {
+      alert('Error: ' + (result.error || result.errors?.join(', ') || 'Unknown error'));
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Failed to add station: ' + error.message);
+  });
+});
+
+function loadStations() {
+  fetch('/api/stations?page=1&limit=20')
+    .then(response => response.json())
+    .then(result => {
+      if (result.success && result.data) {
+        const tbody = document.getElementById('stationsTable');
+        tbody.innerHTML = '';
+        result.data.forEach(station => {
+          const row = `<tr>
+            <td>#${station.station_id}</td>
+            <td>${station.station_name}</td>
+            <td>${station.city}</td>
+            <td>${station.state}</td>
+            <td>${station.contact_number || 'N/A'}</td>
+            <td>0</td>
+            <td>
+              <button class="btn-icon" title="View details">👁️</button>
+              <button class="btn-icon" title="Edit">✏️</button>
+              <button class="btn-icon" title="Services">🏢</button>
+            </td>
+          </tr>`;
+          tbody.innerHTML += row;
+        });
+      }
+    })
+    .catch(error => console.error('Error loading stations:', error));
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  loadStations();
 });
 
 // Search functionality
