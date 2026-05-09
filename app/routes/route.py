@@ -214,6 +214,13 @@ def update_route(route_id):
         result = RouteService.update_route(route_id, distance, estimated_duration)
         
         if result['success']:
+            try:
+                update_data = {}
+                if distance is not None: update_data['distance'] = distance
+                if estimated_duration is not None: update_data['estimated_duration'] = estimated_duration
+                FirebaseClient.backup_data('routes', {str(route_id): {**update_data, 'route_id': route_id}})
+            except Exception:
+                pass
             return jsonify({
                 'success': True,
                 'message': result.get('message', 'Route updated')
@@ -251,6 +258,10 @@ def delete_route(route_id):
         result = RouteService.delete_route(route_id)
         
         if result['success']:
+            try:
+                FirebaseClient.delete_document('routes', route_id)
+            except Exception:
+                pass
             return jsonify({
                 'success': True,
                 'message': result.get('message', 'Route deleted')

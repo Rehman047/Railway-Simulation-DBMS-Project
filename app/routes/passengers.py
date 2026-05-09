@@ -87,6 +87,12 @@ def update_passenger(passenger_id):
 
     result = PassengerService.update_passenger(passenger_id, data)
     if result['success']:
+        try:
+            FirebaseClient.backup_data('users', {
+                str(passenger_id): {**data, 'passenger_id': passenger_id}
+            })
+        except Exception:
+            pass
         return jsonify(result), 200
     return jsonify(result), 400
 
@@ -95,8 +101,12 @@ def update_passenger(passenger_id):
 def delete_passenger(passenger_id):
     """Delete a passenger"""
     result = PassengerService.delete_passenger(passenger_id)
-    
+
     if result['success']:
+        try:
+            FirebaseClient.delete_document('users', passenger_id)
+        except Exception:
+            pass
         return jsonify(result), 200
     else:
         return jsonify(result), 400

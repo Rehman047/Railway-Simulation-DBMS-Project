@@ -192,6 +192,18 @@ def update_booking(booking_id: int):
     )
 
     if result.get('success'):
+        try:
+            FirebaseClient.backup_data('bookings', {
+                str(booking_id): {
+                    'passenger_id': passenger_id,
+                    'schedule_id': schedule_id,
+                    'seat_id': seat_id,
+                    'fare_amount': fare_amount,
+                    'booking_id': booking_id,
+                }
+            })
+        except Exception:
+            pass
         return jsonify(result), 200
     return jsonify(result), 400
 
@@ -203,6 +215,10 @@ def delete_booking(booking_id: int):
     """
     result = BookingService.delete_booking(booking_id)
     if result.get('success'):
+        try:
+            FirebaseClient.delete_document('bookings', booking_id)
+        except Exception:
+            pass
         return jsonify(result), 200
     return jsonify(result), 400
 

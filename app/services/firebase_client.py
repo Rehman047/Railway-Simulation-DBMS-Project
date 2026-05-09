@@ -119,6 +119,27 @@ class FirebaseClient:
             }
     
     @classmethod
+    def delete_document(cls, collection_name, doc_id):
+        """
+        Delete a document from a Firestore collection.
+
+        Args:
+            collection_name: Firestore collection name
+            doc_id: Document ID to delete
+
+        Returns:
+            Success status
+        """
+        if not cls._initialized:
+            cls.initialize()
+        try:
+            cls._db.collection(collection_name).document(str(doc_id)).delete()
+            return {'success': True, 'deleted': f'{collection_name}/{doc_id}'}
+        except Exception as e:
+            print(f"Firebase Delete Error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    @classmethod
     def upload_file(cls, file_path, destination_path):
         """
         Upload file to Firebase Storage

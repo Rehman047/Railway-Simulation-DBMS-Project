@@ -154,6 +154,19 @@ def update_staff(staff_id: int):
     )
 
     if affected > 0:
+        try:
+            FirebaseClient.backup_data('staff', {
+                str(staff_id): {
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'email': email,
+                    'phone_number': phone_number,
+                    'role': role,
+                    'staff_id': staff_id,
+                }
+            })
+        except Exception:
+            pass
         return jsonify({'success': True, 'message': 'Staff member updated successfully'}), 200
     return jsonify({'success': False, 'error': 'No changes made'}), 400
 

@@ -138,6 +138,19 @@ def update_train(train_id: int):
     )
 
     if affected > 0:
+        try:
+            FirebaseClient.backup_data('trains', {
+                str(train_id): {
+                    'train_name': train_name,
+                    'train_type': train_type,
+                    'capacity': capacity,
+                    'total_coaches': total_coaches,
+                    'status': status,
+                    'train_id': train_id,
+                }
+            })
+        except Exception:
+            pass
         return jsonify({'success': True, 'message': 'Train updated successfully'}), 200
     return jsonify({'success': False, 'error': 'No changes made'}), 400
 
@@ -153,6 +166,10 @@ def delete_train(train_id: int):
 
     try:
         Database.execute("DELETE FROM trains WHERE train_id = %s", (train_id,))
+        try:
+            FirebaseClient.delete_document('trains', train_id)
+        except Exception:
+            pass
         return jsonify({'success': True, 'message': 'Train deleted successfully'}), 200
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
