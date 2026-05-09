@@ -28,10 +28,23 @@ class CancellationService:
         offset = (page - 1) * limit
         cancellations = Database.fetch_all(LIST_CANCELLATIONS, (limit, offset))
         
+        # Serialize time/date objects to strings for JSON compatibility
+        serialized_cancellations = []
+        for cancellation in cancellations:
+            if isinstance(cancellation, dict):
+                serialized = cancellation.copy()
+                # Convert datetime/time objects to strings
+                for dt_field in ['cancellation_date', 'created_at']:
+                    if dt_field in serialized and serialized[dt_field] is not None:
+                        serialized[dt_field] = str(serialized[dt_field])
+                serialized_cancellations.append(serialized)
+            else:
+                serialized_cancellations.append(cancellation)
+        
         total = Database.fetch_scalar(COUNT_CANCELLATIONS)
         
         return {
-            'data': cancellations,
+            'data': serialized_cancellations,
             'page': page,
             'limit': limit,
             'total': total,

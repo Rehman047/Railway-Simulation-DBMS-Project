@@ -21,10 +21,30 @@ class ScheduleService:
         offset = (page - 1) * limit
         schedules = Database.fetch_all(LIST_SCHEDULES, (limit, offset))
         
+        # Serialize time objects to strings for JSON compatibility
+        serialized_schedules = []
+        for schedule in schedules:
+            if isinstance(schedule, dict):
+                serialized = schedule.copy()
+                # Convert time objects to strings
+                if 'departure_time' in serialized and serialized['departure_time'] is not None:
+                    serialized['departure_time'] = str(serialized['departure_time'])
+                if 'arrival_time' in serialized and serialized['arrival_time'] is not None:
+                    serialized['arrival_time'] = str(serialized['arrival_time'])
+                # Convert date objects to strings
+                if 'departure_date' in serialized and serialized['departure_date'] is not None:
+                    serialized['departure_date'] = str(serialized['departure_date'])
+                # Convert available_seats to int if it's not None
+                if 'available_seats' in serialized and serialized['available_seats'] is None:
+                    serialized['available_seats'] = 0
+                serialized_schedules.append(serialized)
+            else:
+                serialized_schedules.append(schedule)
+        
         total = Database.fetch_scalar(COUNT_SCHEDULES)
         
         return {
-            'data': schedules,
+            'data': serialized_schedules,
             'page': page,
             'limit': limit,
             'total': total,

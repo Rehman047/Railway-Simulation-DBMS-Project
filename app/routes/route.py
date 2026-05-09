@@ -24,10 +24,10 @@ def list_routes():
         limit = request.args.get('limit', default=20, type=int)
         
         # Validate pagination parameters
-        if page < 1 or limit < 1 or limit > 100:
+        if page < 1 or limit < 1 or limit > 500:
             return jsonify({
                 'success': False,
-                'error': 'Invalid pagination parameters. Page and limit must be positive. Limit max 100.'
+                'error': 'Invalid pagination parameters. Page and limit must be positive. Limit max 500.'
             }), 400
         
         result = RouteService.list_routes(page, limit)

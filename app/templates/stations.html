@@ -230,12 +230,15 @@ async function deleteStation(stationId) {
     alert('Failed to delete station: ' + error.message);
   }
 }
-  });
-}
 
 function loadStations() {
   fetch('/api/stations?page=1&limit=50')
-    .then(response => response.json())
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
     .then(result => {
       console.log('Stations API response:', result);
       if (result.success && result.data) {
@@ -248,7 +251,7 @@ function loadStations() {
             <td>${station.city}</td>
             <td>${station.state}</td>
             <td>${station.contact_number || 'N/A'}</td>
-            <td>0</td>
+            <td>${station.service_count !== undefined ? station.service_count : '0'}</td>
             <td>
               <button class="btn-icon" title="View details" onclick="viewStation(${station.station_id})">👁️</button>
               <button class="btn-icon" title="Edit" onclick="editStation(${station.station_id})">✏️</button>

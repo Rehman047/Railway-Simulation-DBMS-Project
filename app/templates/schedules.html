@@ -299,6 +299,9 @@ function statusClass(status) {
 async function loadSchedules() {
   try {
     const response = await fetch('/api/schedules?page=1&limit=50');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     const result = await response.json();
     console.log('Schedules API response:', result);
     
@@ -315,12 +318,12 @@ async function loadSchedules() {
       row.innerHTML = `
         <td>#${schedule.schedule_id}</td>
         <td>${schedule.train_name || ('Train ' + schedule.train_id)}</td>
-        <td>${schedule.source_station || 'N/A'} → ${schedule.destination_station || 'N/A'}</td>
+        <td>${schedule.source_station || 'N/A'} → ${schedule.dest_station || 'N/A'}</td>
         <td>${schedule.departure_date || 'N/A'}</td>
         <td>${schedule.departure_time || 'N/A'}</td>
         <td>${schedule.arrival_time || 'N/A'}</td>
         <td><span class="badge ${statusClass(schedule.schedule_status)}">${schedule.schedule_status || 'scheduled'}</span></td>
-        <td><span class="available-seats">${schedule.available_seats || '0'}</span></td>
+        <td><span class="available-seats">${schedule.available_seats !== undefined ? schedule.available_seats : '0'}</span></td>
         <td>
           <button class="btn-icon" title="Occupancy" onclick="getScheduleOccupancy(${schedule.schedule_id})">👁️</button>
           <button class="btn-icon" title="Edit" onclick="editSchedule(${schedule.schedule_id})">✏️</button>

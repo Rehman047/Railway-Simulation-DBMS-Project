@@ -15,12 +15,19 @@ LIST_SCHEDULES = """
     SELECT s.schedule_id, s.train_id, s.route_id, s.departure_date, s.departure_time, s.arrival_time, s.schedule_status,
            t.train_name, t.train_number,
            st_src.station_name as source_station,
-           st_dst.station_name as destination_station
+           st_dst.station_name as dest_station,
+           (t.capacity - COALESCE(booked_seats.booked_count, 0)) as available_seats
     FROM schedules s
     JOIN trains t ON s.train_id = t.train_id
     JOIN routes r ON s.route_id = r.route_id
     JOIN stations st_src ON r.source_station_id = st_src.station_id
     JOIN stations st_dst ON r.destination_station_id = st_dst.station_id
+    LEFT JOIN (
+        SELECT schedule_id, COUNT(*) as booked_count
+        FROM bookings
+        WHERE booking_status != 'cancelled'
+        GROUP BY schedule_id
+    ) booked_seats ON s.schedule_id = booked_seats.schedule_id
     ORDER BY s.departure_date DESC, s.departure_time
     LIMIT %s OFFSET %s
 """

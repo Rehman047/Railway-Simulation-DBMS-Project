@@ -21,10 +21,23 @@ class PaymentService:
         offset = (page - 1) * limit
         payments = Database.fetch_all(LIST_PAYMENTS, (limit, offset))
         
+        # Serialize time/date objects to strings for JSON compatibility
+        serialized_payments = []
+        for payment in payments:
+            if isinstance(payment, dict):
+                serialized = payment.copy()
+                # Convert datetime/time objects to strings
+                for dt_field in ['payment_date', 'created_at']:
+                    if dt_field in serialized and serialized[dt_field] is not None:
+                        serialized[dt_field] = str(serialized[dt_field])
+                serialized_payments.append(serialized)
+            else:
+                serialized_payments.append(payment)
+        
         total = Database.fetch_scalar(COUNT_PAYMENTS)
         
         return {
-            'data': payments,
+            'data': serialized_payments,
             'page': page,
             'limit': limit,
             'total': total,

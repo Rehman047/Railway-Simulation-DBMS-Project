@@ -12,9 +12,12 @@ GET_STATION = """
 
 # List all stations with pagination
 LIST_STATIONS = """
-    SELECT station_id, station_name, city, state, address, contact_number, created_at
-    FROM stations
-    ORDER BY station_name
+    SELECT s.station_id, s.station_name, s.city, s.state, s.address, s.contact_number, s.created_at,
+           COALESCE(COUNT(ss.service_id), 0) as service_count
+    FROM stations s
+    LEFT JOIN station_services ss ON s.station_id = ss.station_id
+    GROUP BY s.station_id, s.station_name, s.city, s.state, s.address, s.contact_number, s.created_at
+    ORDER BY s.station_name
     LIMIT %s OFFSET %s
 """
 
@@ -54,10 +57,13 @@ GET_STATION_BY_NAME = """
 
 # List stations in a city
 GET_STATIONS_BY_CITY = """
-    SELECT station_id, station_name, city, state, address, contact_number, created_at
-    FROM stations
-    WHERE city = %s
-    ORDER BY station_name
+    SELECT s.station_id, s.station_name, s.city, s.state, s.address, s.contact_number, s.created_at,
+           COALESCE(COUNT(ss.service_id), 0) as service_count
+    FROM stations s
+    LEFT JOIN station_services ss ON s.station_id = ss.station_id
+    WHERE s.city = %s
+    GROUP BY s.station_id, s.station_name, s.city, s.state, s.address, s.contact_number, s.created_at
+    ORDER BY s.station_name
 """
 
 # Get routes starting from a station

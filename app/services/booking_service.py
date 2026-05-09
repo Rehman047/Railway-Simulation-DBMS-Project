@@ -13,7 +13,8 @@ class BookingService:
     @staticmethod
     def get_available_seats(schedule_id):
         """Get available seats for a schedule"""
-        available = Database.fetch_all(GET_AVAILABLE_SEATS, (schedule_id,))
+        # Note: GET_AVAILABLE_SEATS query uses schedule_id twice
+        available = Database.fetch_all(GET_AVAILABLE_SEATS, (schedule_id, schedule_id))
         return available
     
     @staticmethod
@@ -91,10 +92,27 @@ class BookingService:
         else:
             bookings = Database.fetch_all(LIST_BOOKINGS, (limit, offset))
         
+        # Serialize time/date objects to strings for JSON compatibility
+        serialized_bookings = []
+        for booking in bookings:
+            if isinstance(booking, dict):
+                serialized = booking.copy()
+                # Convert time objects to strings
+                for time_field in ['departure_time', 'arrival_time']:
+                    if time_field in serialized and serialized[time_field] is not None:
+                        serialized[time_field] = str(serialized[time_field])
+                # Convert date objects to strings
+                for date_field in ['departure_date', 'booking_date']:
+                    if date_field in serialized and serialized[date_field] is not None:
+                        serialized[date_field] = str(serialized[date_field])
+                serialized_bookings.append(serialized)
+            else:
+                serialized_bookings.append(booking)
+        
         total = Database.fetch_scalar(COUNT_BOOKINGS)
         
         return {
-            'data': bookings,
+            'data': serialized_bookings,
             'page': page,
             'limit': limit,
             'total': total,
@@ -146,7 +164,21 @@ class BookingService:
     @staticmethod
     def get_booking_with_details(booking_id):
         """Get full booking details with passenger, schedule, and seat info"""
-        return Database.fetch_one(GET_BOOKING_DETAILS, (booking_id,))
+        booking = Database.fetch_one(GET_BOOKING_DETAILS, (booking_id,))
+        
+        # Serialize time/date objects to strings for JSON compatibility
+        if isinstance(booking, dict) and booking:
+            serialized = booking.copy()
+            # Convert time objects to strings
+            for time_field in ['departure_time', 'arrival_time']:
+                if time_field in serialized and serialized[time_field] is not None:
+                    serialized[time_field] = str(serialized[time_field])
+            # Convert date objects to strings
+            for date_field in ['departure_date', 'booking_date']:
+                if date_field in serialized and serialized[date_field] is not None:
+                    serialized[date_field] = str(serialized[date_field])
+            return serialized
+        return booking
 
     @staticmethod
     def update_booking(booking_id, passenger_id, schedule_id, seat_id, fare_amount):
