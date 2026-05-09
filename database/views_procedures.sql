@@ -627,3 +627,92 @@ CREATE TRIGGER log_payment_changes
     AFTER UPDATE OF payment_status ON payments
     FOR EACH ROW
     EXECUTE FUNCTION trg_log_payment_changes();
+
+
+-- ============================================================
+-- CURSOR-BASED FUNCTION (for DBMS Demo)
+-- Iterates all passengers using an explicit CURSOR and builds
+-- per-passenger booking statistics row by row.
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION cursor_passenger_booking_summary()
+RETURNS TABLE (
+    passenger_name    TEXT,
+    email             VARCHAR,
+    total_bookings    BIGINT,
+    total_spent       NUMERIC,
+    last_booking_date DATE
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    passenger_cursor CURSOR FOR
+        SELECT passenger_id, first_name, last_name, email AS pemail
+        FROM passengers
+        ORDER BY passenger_id;
+    rec          RECORD;
+    v_bookings   BIGINT;
+    v_spent      NUMERIC;
+    v_last_date  DATE;
+BEGIN
+    OPEN passenger_cursor;
+    LOOP
+        FETCH passenger_cursor INTO rec;
+        EXIT WHEN NOT FOUND;
+
+        SELECT COUNT(*),
+               COALESCE(SUM(fare_amount), 0),
+               MAX(booking_date::DATE)
+        INTO   v_bookings, v_spent, v_last_date
+        FROM   bookings
+        WHERE  passenger_id = rec.passenger_id;
+
+        passenger_name    := rec.first_name || ' ' || rec.last_name;
+        email             := rec.pemail;
+        total_bookings    := v_bookings;
+        total_spent       := v_spent;
+        last_booking_date := v_last_date;
+        RETURN NEXT;
+    END LOOP;
+    CLOSE passenger_cursor;
+END;
+$$;
+
+
+-- ============================================================
+-- SUBQUERY DEMO FUNCTION (for DBMS Demo)
+-- Returns passengers who have spent more than the average
+-- fare using a correlated subquery.
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION subquery_high_value_passengers()
+RETURNS TABLE (
+    passenger_id   INTEGER,
+    passenger_name TEXT,
+    email          VARCHAR,
+    total_bookings BIGINT,
+    total_spent    NUMERIC,
+    avg_all_fares  NUMERIC
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        p.passenger_id,
+        (p.first_name || ' ' || p.last_name)::TEXT  AS passenger_name,
+        p.email,
+        (SELECT COUNT(*)
+         FROM   bookings b
+         WHERE  b.passenger_id = p.passenger_id)    AS total_bookings,
+        (SELECT COALESCE(SUM(fare_amount), 0)
+         FROM   bookings b
+         WHERE  b.passenger_id = p.passenger_id)    AS total_spent,
+        (SELECT ROUND(AVG(fare_amount), 2) FROM bookings) AS avg_all_fares
+    FROM passengers p
+    WHERE (
+        SELECT COALESCE(SUM(fare_amount), 0)
+        FROM   bookings b
+        WHERE  b.passenger_id = p.passenger_id
+    ) > (SELECT COALESCE(AVG(fare_amount), 0) FROM bookings)
+    ORDER BY total_spent DESC;
+END;
+$$;

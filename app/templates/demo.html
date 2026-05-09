@@ -1,0 +1,392 @@
+{% extends "base.html" %}
+{% block title %}DBMS Features Demo — Railway DBMS{% endblock %}
+{% block page_title %}DBMS Features{% endblock %}
+{% block page_subtitle %}Live demonstration of all advanced database concepts{% endblock %}
+
+{% block content %}
+<style>
+.demo-section { background: var(--card-bg, #1e2433); border-radius: 12px; padding: 24px; margin-bottom: 28px; border: 1px solid rgba(255,255,255,0.07); }
+.demo-section h3 { margin: 0 0 6px; font-size: 1.1rem; color: #a78bfa; display: flex; align-items: center; gap: 8px; }
+.demo-section .badge { background: rgba(167,139,250,0.15); color: #a78bfa; font-size: 0.7rem; padding: 2px 10px; border-radius: 20px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+.demo-section .concept-desc { color: #8892a4; font-size: 0.85rem; margin: 0 0 16px; line-height: 1.6; }
+.demo-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.demo-table th { background: rgba(255,255,255,0.05); color: #a78bfa; padding: 8px 12px; text-align: left; font-weight: 600; text-transform: uppercase; font-size: 0.72rem; letter-spacing: .06em; }
+.demo-table td { padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); color: #c9d1e0; }
+.demo-table tr:last-child td { border-bottom: none; }
+.demo-table tr:hover td { background: rgba(255,255,255,0.03); }
+.pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; }
+.pill-green { background: rgba(52,211,153,0.15); color: #34d399; }
+.pill-yellow { background: rgba(251,191,36,0.15); color: #fbbf24; }
+.pill-red { background: rgba(248,113,113,0.15); color: #f87171; }
+.pill-blue { background: rgba(96,165,250,0.15); color: #60a5fa; }
+.fare-cards { display: flex; gap: 12px; flex-wrap: wrap; }
+.fare-card { background: rgba(167,139,250,0.08); border: 1px solid rgba(167,139,250,0.2); border-radius: 10px; padding: 16px 24px; text-align: center; }
+.fare-card .label { font-size: 0.78rem; color: #8892a4; text-transform: uppercase; letter-spacing: .06em; }
+.fare-card .value { font-size: 1.4rem; font-weight: 700; color: #a78bfa; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.info-box { background: rgba(96,165,250,0.07); border: 1px solid rgba(96,165,250,0.2); border-radius: 8px; padding: 14px 18px; font-size: 0.84rem; color: #c9d1e0; }
+.info-box strong { color: #60a5fa; }
+.trigger-card { background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.2); border-radius: 10px; padding: 16px; margin-bottom: 10px; }
+.trigger-card .t-name { color: #fbbf24; font-weight: 700; font-size: 0.9rem; }
+.trigger-card .t-detail { color: #8892a4; font-size: 0.8rem; margin-top: 4px; }
+.empty-state { text-align: center; padding: 24px; color: #8892a4; font-size: 0.85rem; }
+.sql-block { background: #0d1117; border-radius: 8px; padding: 14px 16px; font-family: 'Fira Code', monospace; font-size: 0.78rem; color: #79c0ff; overflow-x: auto; border: 1px solid rgba(255,255,255,0.06); white-space: pre; }
+</style>
+
+<!-- ╔══════════════════════════════════════════════════╗ -->
+<!--   1. VIEWS                                          -->
+<!-- ╚══════════════════════════════════════════════════╝ -->
+<div class="demo-section">
+  <h3>📐 <span>Database Views</span> <span class="badge">Views</span></h3>
+  <p class="concept-desc">
+    Views are pre-built SELECT queries stored in the database. The system has four:
+    <strong>train_occupancy_status</strong>, <strong>revenue_by_route</strong>,
+    <strong>pending_refunds_report</strong>, and <strong>passenger_complete_booking_info</strong>.
+    Querying a view is identical to querying a table — the complex JOIN is hidden.
+  </p>
+
+  <h4 style="color:#e2e8f0;font-size:.85rem;margin:0 0 8px">📊 Train Occupancy Status View</h4>
+  {% if occupancy_view %}
+  <table class="demo-table" style="margin-bottom:18px">
+    <tr><th>Schedule ID</th><th>Train</th><th>Departure</th><th>Total Seats</th><th>Booked</th><th>Occupancy %</th></tr>
+    {% for r in occupancy_view %}
+    <tr>
+      <td>{{ r.schedule_id }}</td><td>{{ r.train_name }}</td><td>{{ r.departure_date }}</td>
+      <td>{{ r.total_seats }}</td><td>{{ r.booked_seats }}</td>
+      <td><span class="pill {% if r.occupancy_percent|float > 75 %}pill-red{% elif r.occupancy_percent|float > 40 %}pill-yellow{% else %}pill-green{% endif %}">{{ r.occupancy_percent }}%</span></td>
+    </tr>{% endfor %}
+  </table>{% else %}<div class="empty-state">No data (run views_procedures.sql first)</div>{% endif %}
+
+  <h4 style="color:#e2e8f0;font-size:.85rem;margin:0 0 8px">💰 Revenue by Route View</h4>
+  {% if revenue_view %}
+  <table class="demo-table" style="margin-bottom:18px">
+    <tr><th>Route</th><th>Bookings</th><th>Total Revenue</th><th>Avg Fare</th></tr>
+    {% for r in revenue_view %}
+    <tr>
+      <td>{{ r.source_station }} → {{ r.destination_station }}</td>
+      <td>{{ r.total_bookings }}</td>
+      <td>PKR {{ "{:,.0f}".format(r.total_revenue|float) }}</td>
+      <td>PKR {{ "{:,.0f}".format(r.avg_fare|float) }}</td>
+    </tr>{% endfor %}
+  </table>{% else %}<div class="empty-state">No completed payments yet</div>{% endif %}
+
+  <h4 style="color:#e2e8f0;font-size:.85rem;margin:0 0 8px">🔄 Pending Refunds View</h4>
+  {% if pending_refunds_view %}
+  <table class="demo-table">
+    <tr><th>Cancellation ID</th><th>Passenger</th><th>Refund Amount</th><th>Status</th></tr>
+    {% for r in pending_refunds_view %}
+    <tr>
+      <td>{{ r.cancellation_id }}</td>
+      <td>{{ r.first_name }} {{ r.last_name }}</td>
+      <td>PKR {{ "{:,.0f}".format(r.refund_amount|float) }}</td>
+      <td><span class="pill pill-yellow">{{ r.refund_status }}</span></td>
+    </tr>{% endfor %}
+  </table>{% else %}<div class="empty-state">No pending refunds</div>{% endif %}
+</div>
+
+<!-- ╔══════════════════════════════════════════════════╗ -->
+<!--   2. FUNCTIONS                                      -->
+<!-- ╚══════════════════════════════════════════════════╝ -->
+<div class="demo-section">
+  <h3>⚙️ <span>SQL Functions</span> <span class="badge">Functions</span></h3>
+  <p class="concept-desc">
+    User-defined functions encapsulate reusable logic inside the database.
+    <strong>calculate_fare()</strong> computes ticket price from distance and seat class.
+    <strong>get_available_seats()</strong> returns live seat count.
+    <strong>validate_passenger_info()</strong> validates CNIC format and age rules.
+  </p>
+
+  <div class="grid-2" style="margin-bottom:16px">
+    <div>
+      <h4 style="color:#e2e8f0;font-size:.85rem;margin:0 0 10px">calculate_fare(route_id, seat_class)</h4>
+      {% if fare_demos %}
+      <div class="fare-cards">
+        {% for f in fare_demos %}
+        <div class="fare-card">
+          <div class="label">{{ f.seat_class }}</div>
+          <div class="value">PKR {{ "{:,.0f}".format(f.fare|float) }}</div>
+        </div>{% endfor %}
+      </div>{% else %}<div class="empty-state">No routes found</div>{% endif %}
+    </div>
+    <div>
+      <h4 style="color:#e2e8f0;font-size:.85rem;margin:0 0 10px">get_available_seats(schedule_id)</h4>
+      {% if avail_demo %}
+      <div class="info-box">
+        Schedule <strong>#{{ avail_demo.schedule_id }}</strong> has
+        <strong style="color:#34d399;font-size:1.2rem">{{ avail_demo.available_seats }}</strong>
+        available seats
+      </div>{% else %}<div class="empty-state">No active schedules</div>{% endif %}
+
+      <h4 style="color:#e2e8f0;font-size:.85rem;margin:16px 0 10px">validate_passenger_info()</h4>
+      {% if validate_demo %}
+      <div class="info-box">
+        CNIC <strong>'12345-6789012-3'</strong>, DOB <strong>'1990-01-01'</strong> →
+        <span class="pill {% if validate_demo.is_valid %}pill-green{% else %}pill-red{% endif %}">
+          {{ 'Valid ✓' if validate_demo.is_valid else 'Invalid ✗' }}
+        </span>
+      </div>{% endif %}
+    </div>
+  </div>
+
+  <div class="sql-block">SELECT calculate_fare(1, 'economy')   → PKR computed from distance × rate
+SELECT get_available_seats(1)         → capacity − booked (non-cancelled)
+SELECT validate_passenger_info(dob, id_type, id_number) → BOOLEAN</div>
+</div>
+
+<!-- ╔══════════════════════════════════════════════════╗ -->
+<!--   3. STORED PROCEDURES                              -->
+<!-- ╚══════════════════════════════════════════════════╝ -->
+<div class="demo-section">
+  <h3>📦 <span>Stored Procedures</span> <span class="badge">Procedures</span></h3>
+  <p class="concept-desc">
+    Procedures execute multi-step transactional logic atomically inside the database.
+    <strong>add_booking()</strong> validates and inserts a booking.
+    <strong>process_cancellation()</strong> cancels, refunds, and releases a seat.
+    <strong>generate_revenue_report()</strong> aggregates revenue by route and train.
+    <strong>check_train_availability()</strong> wraps get_available_seats as a CALL-able procedure.
+  </p>
+
+  <h4 style="color:#e2e8f0;font-size:.85rem;margin:0 0 8px">generate_revenue_report('2000-01-01', '2099-12-31')</h4>
+  {% if revenue_report %}
+  <table class="demo-table" style="margin-bottom:16px">
+    <tr><th>Route</th><th>Train</th><th>Date</th><th>Bookings</th><th>Revenue</th></tr>
+    {% for r in revenue_report %}
+    <tr>
+      <td>{{ r.source_station }} → {{ r.destination_station }}</td>
+      <td>{{ r.train_name }}</td><td>{{ r.report_date }}</td>
+      <td>{{ r.total_bookings }}</td>
+      <td>PKR {{ "{:,.0f}".format(r.total_revenue|float) }}</td>
+    </tr>{% endfor %}
+  </table>{% else %}<div class="empty-state">No completed payments in range</div>{% endif %}
+
+  <h4 style="color:#e2e8f0;font-size:.85rem;margin:0 0 8px">check_train_availability (top 5 schedules)</h4>
+  {% if avail_report %}
+  <table class="demo-table">
+    <tr><th>Schedule ID</th><th>Train</th><th>Departure</th><th>Available Seats</th></tr>
+    {% for r in avail_report %}
+    <tr>
+      <td>{{ r.schedule_id }}</td><td>{{ r.train_name }}</td><td>{{ r.departure_date }}</td>
+      <td><span class="pill {% if r.available_seats > 0 %}pill-green{% else %}pill-red{% endif %}">{{ r.available_seats }}</span></td>
+    </tr>{% endfor %}
+  </table>{% else %}<div class="empty-state">No schedules found</div>{% endif %}
+
+  <div class="sql-block" style="margin-top:14px">CALL add_booking(passenger_id, schedule_id, seat_id, fare, INOUT booking_id)
+CALL process_cancellation(booking_id, staff_id, reason, INOUT cancellation_id)
+CALL update_seat_status(seat_id, 'available' | 'booked' | 'maintenance')
+SELECT * FROM generate_revenue_report(from_date, to_date)</div>
+</div>
+
+<!-- ╔══════════════════════════════════════════════════╗ -->
+<!--   4. CURSORS                                        -->
+<!-- ╚══════════════════════════════════════════════════╝ -->
+<div class="demo-section">
+  <h3>🖱️ <span>Cursor-Based Function</span> <span class="badge">Cursors</span></h3>
+  <p class="concept-desc">
+    <strong>cursor_passenger_booking_summary()</strong> opens an explicit PL/pgSQL CURSOR
+    over the passengers table, fetches each row one at a time inside a LOOP, aggregates
+    booking statistics per passenger, and returns a result set.
+    This mirrors how application-level cursors work but entirely inside PostgreSQL.
+  </p>
+  <div class="sql-block" style="margin-bottom:14px">OPEN passenger_cursor;
+LOOP
+  FETCH passenger_cursor INTO rec;
+  EXIT WHEN NOT FOUND;
+  SELECT COUNT(*), SUM(fare_amount), MAX(booking_date) INTO v_bookings, v_spent, v_last
+  FROM bookings WHERE passenger_id = rec.passenger_id;
+  RETURN NEXT;
+END LOOP;
+CLOSE passenger_cursor;</div>
+
+  {% if cursor_results %}
+  <table class="demo-table">
+    <tr><th>Passenger</th><th>Email</th><th>Total Bookings</th><th>Total Spent</th><th>Last Booking</th></tr>
+    {% for r in cursor_results %}
+    <tr>
+      <td>{{ r.passenger_name }}</td><td>{{ r.email }}</td>
+      <td>{{ r.total_bookings }}</td>
+      <td>PKR {{ "{:,.0f}".format(r.total_spent|float) }}</td>
+      <td>{{ r.last_booking_date or '—' }}</td>
+    </tr>{% endfor %}
+  </table>{% else %}<div class="empty-state">Run cursor_passenger_booking_summary() — no passengers yet</div>{% endif %}
+</div>
+
+<!-- ╔══════════════════════════════════════════════════╗ -->
+<!--   5. SUBQUERIES                                     -->
+<!-- ╚══════════════════════════════════════════════════╝ -->
+<div class="demo-section">
+  <h3>🔍 <span>Subqueries</span> <span class="badge">Subqueries</span></h3>
+  <p class="concept-desc">
+    Subqueries are SELECT statements nested inside another query.
+    <strong>subquery_high_value_passengers()</strong> uses correlated subqueries to find passengers
+    whose total spending exceeds the average fare across all bookings.
+    The route cancellation table below uses a scalar subquery per route.
+  </p>
+
+  <h4 style="color:#e2e8f0;font-size:.85rem;margin:0 0 8px">High-Value Passengers (spending &gt; average fare)</h4>
+  {% if subquery_results %}
+  <table class="demo-table" style="margin-bottom:16px">
+    <tr><th>Passenger</th><th>Email</th><th>Bookings</th><th>Total Spent</th><th>System Avg Fare</th></tr>
+    {% for r in subquery_results %}
+    <tr>
+      <td>{{ r.passenger_name }}</td><td>{{ r.email }}</td>
+      <td>{{ r.total_bookings }}</td>
+      <td style="color:#34d399">PKR {{ "{:,.0f}".format(r.total_spent|float) }}</td>
+      <td>PKR {{ "{:,.0f}".format(r.avg_all_fares|float) }}</td>
+    </tr>{% endfor %}
+  </table>{% else %}<div class="empty-state">No high-value passengers yet</div>{% endif %}
+
+  <h4 style="color:#e2e8f0;font-size:.85rem;margin:0 0 8px">Route Stats with Scalar Subquery (cancelled per route)</h4>
+  {% if top_routes_subquery %}
+  <table class="demo-table">
+    <tr><th>Route</th><th>Total Bookings</th><th>Cancelled (subquery)</th></tr>
+    {% for r in top_routes_subquery %}
+    <tr>
+      <td>{{ r.source_station }} → {{ r.destination_station }}</td>
+      <td>{{ r.total_bookings }}</td>
+      <td>{{ r.cancelled_bookings }}</td>
+    </tr>{% endfor %}
+  </table>{% endif %}
+</div>
+
+<!-- ╔══════════════════════════════════════════════════╗ -->
+<!--   6. JOINS                                          -->
+<!-- ╚══════════════════════════════════════════════════╝ -->
+<div class="demo-section">
+  <h3>🔗 <span>Complex Joins</span> <span class="badge">Joins</span></h3>
+  <p class="concept-desc">
+    This query joins <strong>7 tables</strong>: bookings → passengers → schedules → trains
+    → routes → stations (×2 for source/dest) → seats → payments.
+    It demonstrates INNER JOINs for required relations and LEFT JOINs for optional ones
+    (a booking may have no seat or no payment yet).
+  </p>
+  <div class="sql-block" style="margin-bottom:14px">FROM bookings b
+JOIN passengers p  ON b.passenger_id = p.passenger_id   -- INNER: must have passenger
+JOIN schedules  s  ON b.schedule_id  = s.schedule_id    -- INNER: must have schedule
+JOIN trains     t  ON s.train_id     = t.train_id       -- INNER: must have train
+JOIN routes     r  ON s.route_id     = r.route_id       -- INNER: must have route
+JOIN stations src  ON r.source_station_id = src.station_id
+JOIN stations dst  ON r.destination_station_id = dst.station_id
+LEFT JOIN seats se ON b.seat_id = se.seat_id            -- LEFT: seat may be null
+LEFT JOIN payments py ON b.booking_id = py.booking_id   -- LEFT: payment may not exist</div>
+
+  {% if join_results %}
+  <div style="overflow-x:auto">
+  <table class="demo-table">
+    <tr><th>#</th><th>Passenger</th><th>Train</th><th>Seat</th><th>Route</th><th>Date</th><th>Fare</th><th>Booking</th><th>Payment</th></tr>
+    {% for r in join_results %}
+    <tr>
+      <td>{{ r.booking_id }}</td>
+      <td>{{ r.passenger_name }}</td>
+      <td>{{ r.train_name }} ({{ r.train_number }})</td>
+      <td>{{ r.seat_number or '—' }} <small style="color:#8892a4">{{ r.seat_class or '' }}</small></td>
+      <td style="white-space:nowrap">{{ r.from_station }} → {{ r.to_station }}</td>
+      <td>{{ r.departure_date }}</td>
+      <td>PKR {{ "{:,.0f}".format(r.fare_amount|float) }}</td>
+      <td><span class="pill {% if r.booking_status == 'Confirmed' %}pill-green{% elif r.booking_status == 'Cancelled' %}pill-red{% else %}pill-yellow{% endif %}">{{ r.booking_status }}</span></td>
+      <td><span class="pill {% if r.payment_status == 'Completed' %}pill-green{% elif r.payment_status %}pill-yellow{% else %}pill-blue{% endif %}">{{ r.payment_status or 'None' }}</span></td>
+    </tr>{% endfor %}
+  </table></div>{% else %}<div class="empty-state">No bookings yet</div>{% endif %}
+</div>
+
+<!-- ╔══════════════════════════════════════════════════╗ -->
+<!--   7. TRIGGERS                                       -->
+<!-- ╚══════════════════════════════════════════════════╝ -->
+<div class="demo-section">
+  <h3>⚡ <span>Triggers</span> <span class="badge">Triggers</span></h3>
+  <p class="concept-desc">
+    The database has <strong>5 active triggers</strong> that fire automatically on data events —
+    no application code needed. The audit log below is populated entirely by the
+    <strong>log_payment_changes</strong> trigger whenever a payment status is updated.
+  </p>
+
+  <div style="margin-bottom:16px">
+    {% if triggers_list %}
+      {% for t in triggers_list %}
+      <div class="trigger-card">
+        <div class="t-name">⚡ {{ t.trigger_name }}</div>
+        <div class="t-detail">
+          <strong style="color:#fbbf24">{{ t.action_timing }} {{ t.event_manipulation }}</strong>
+          ON <strong style="color:#60a5fa">{{ t.event_object_table }}</strong>
+        </div>
+        <div class="t-detail" style="margin-top:4px;font-size:0.75rem">{{ t.action_statement }}</div>
+      </div>{% endfor %}
+    {% else %}
+      <div class="empty-state">Run views_procedures.sql to create triggers</div>
+    {% endif %}
+  </div>
+
+  <h4 style="color:#e2e8f0;font-size:.85rem;margin:0 0 8px">Payment Audit Log (populated by log_payment_changes trigger)</h4>
+  {% if audit_log %}
+  <table class="demo-table">
+    <tr><th>Log ID</th><th>Payment ID</th><th>Old Status</th><th>New Status</th><th>Changed At</th><th>Changed By</th></tr>
+    {% for r in audit_log %}
+    <tr>
+      <td>{{ r.log_id }}</td><td>{{ r.payment_id }}</td>
+      <td><span class="pill pill-yellow">{{ r.old_status or '—' }}</span></td>
+      <td><span class="pill pill-green">{{ r.new_status }}</span></td>
+      <td>{{ r.changed_at }}</td><td>{{ r.changed_by }}</td>
+    </tr>{% endfor %}
+  </table>
+  {% else %}
+  <div class="empty-state">Audit log is empty — update a payment status to see this trigger fire</div>
+  {% endif %}
+</div>
+
+<!-- ╔══════════════════════════════════════════════════╗ -->
+<!--   8. INDEXES                                        -->
+<!-- ╚══════════════════════════════════════════════════╝ -->
+<div class="demo-section">
+  <h3>🗂️ <span>Indexes</span> <span class="badge">Indexes</span></h3>
+  <p class="concept-desc">
+    Indexes speed up SELECT queries by creating a sorted data structure the database can
+    binary-search instead of doing a full table scan. The system has composite indexes
+    (multiple columns), partial indexes (WHERE clause), and DESC indexes for ordered queries.
+  </p>
+  {% if indexes_list %}
+  <table class="demo-table">
+    <tr><th>Index Name</th><th>Table</th><th>Definition</th></tr>
+    {% for idx in indexes_list %}
+    <tr>
+      <td style="color:#a78bfa;font-family:monospace;font-size:0.78rem">{{ idx.indexname }}</td>
+      <td><span class="pill pill-blue">{{ idx.tablename }}</span></td>
+      <td style="font-family:monospace;font-size:0.75rem;color:#8892a4">{{ idx.indexdef }}</td>
+    </tr>{% endfor %}
+  </table>{% else %}<div class="empty-state">Run indexes.sql to create indexes</div>{% endif %}
+</div>
+
+<!-- ╔══════════════════════════════════════════════════╗ -->
+<!--   9. TRANSACTIONS                                   -->
+<!-- ╚══════════════════════════════════════════════════╝ -->
+<div class="demo-section">
+  <h3>🔒 <span>Transactions</span> <span class="badge">Transactions</span></h3>
+  <p class="concept-desc">
+    Every booking creation, payment, and cancellation executes inside an explicit
+    <strong>BEGIN / COMMIT</strong> transaction block. If any step fails, the entire
+    operation is <strong>ROLLBACK</strong>-ed — no partial data is saved.
+    The table below shows the outcome of past transactions.
+  </p>
+  <div class="sql-block" style="margin-bottom:14px">BEGIN;
+  INSERT INTO bookings (...) VALUES (...);     -- step 1
+  UPDATE seats SET availability = 'booked';   -- step 2 (via trigger)
+  INSERT INTO payments (...);                  -- step 3
+  UPDATE bookings SET booking_status = 'Confirmed'; -- step 4
+COMMIT;  -- all steps succeed atomically
+-- On any error: ROLLBACK — nothing is saved</div>
+
+  {% if recent_transactions %}
+  <table class="demo-table">
+    <tr><th>Booking ID</th><th>Date</th><th>Passenger</th><th>Fare</th><th>Booking Status</th><th>Payment</th><th>Method</th></tr>
+    {% for r in recent_transactions %}
+    <tr>
+      <td>{{ r.booking_id }}</td>
+      <td>{{ r.booking_date }}</td>
+      <td>{{ r.passenger_name }}</td>
+      <td>PKR {{ "{:,.0f}".format(r.fare_amount|float) }}</td>
+      <td><span class="pill {% if r.booking_status == 'Confirmed' %}pill-green{% elif r.booking_status == 'Cancelled' %}pill-red{% else %}pill-yellow{% endif %}">{{ r.booking_status }}</span></td>
+      <td><span class="pill {% if r.payment_status == 'Completed' %}pill-green{% elif r.payment_status %}pill-yellow{% else %}pill-blue{% endif %}">{{ r.payment_status or 'None' }}</span></td>
+      <td>{{ r.payment_method or '—' }}</td>
+    </tr>{% endfor %}
+  </table>{% else %}<div class="empty-state">No bookings yet</div>{% endif %}
+</div>
+
+{% endblock %}
