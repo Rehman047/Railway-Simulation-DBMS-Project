@@ -6,6 +6,7 @@ from app.queries.train_queries import (
     GET_TRAIN_WITH_COACHES, GET_TRAIN_AMENITIES,
 )
 from app.queries.coach_queries import LIST_COACHES_BY_TRAIN
+from app.services.firebase_client import FirebaseClient
 from app.services.validators import validate_create_train
 
 trains_bp = Blueprint('trains', __name__, url_prefix='/api/trains')
@@ -91,6 +92,19 @@ def create_train():
     )
 
     if train_id:
+        try:
+            FirebaseClient.backup_data('trains', {
+                str(train_id): {
+                    'train_name': data['train_name'],
+                    'train_number': data['train_number'],
+                    'train_type': data['train_type'],
+                    'capacity': data['capacity'],
+                    'total_coaches': data['total_coaches'],
+                    'train_id': train_id,
+                }
+            })
+        except Exception:
+            pass
         return jsonify({'success': True, 'train_id': train_id}), 201
     return jsonify({'success': False, 'error': 'Failed to create train'}), 500
 

@@ -2,7 +2,9 @@
 from flask import Blueprint, jsonify, request
 
 from app.services.analytics_service import AnalyticsService
+from app.services.firebase_client import FirebaseClient
 from app.utils.validators import Validators
+
 
 analytics_bp = Blueprint('analytics', __name__, url_prefix='/api/analytics')
 

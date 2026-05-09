@@ -5,6 +5,7 @@ from app.queries.station_queries import (
     GET_STATION, LIST_STATIONS, COUNT_STATIONS,
     CREATE_STATION, GET_STATION_SERVICES,
 )
+from app.services.firebase_client import FirebaseClient
 from app.services.validators import validate_create_station
 
 stations_bp = Blueprint('stations', __name__, url_prefix='/api/stations')
@@ -85,6 +86,17 @@ def create_station():
     )
 
     if station_id:
+        try:
+            FirebaseClient.backup_data('stations', {
+                str(station_id): {
+                    'station_name': data['station_name'],
+                    'city': data['city'],
+                    'state': data['state'],
+                    'station_id': station_id,
+                }
+            })
+        except Exception:
+            pass
         return jsonify({'success': True, 'station_id': station_id}), 201
     return jsonify({'success': False, 'error': 'Failed to create station'}), 500
 

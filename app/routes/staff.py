@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify, request
 
 from app.db import Database
 from app.services.cancellation_service import CancellationService
+from app.services.firebase_client import FirebaseClient
 
 staff_bp = Blueprint('staff', __name__, url_prefix='/api/staff')
 
@@ -102,6 +103,18 @@ def create_staff():
     )
 
     if staff_id:
+        try:
+            FirebaseClient.backup_data('staff', {
+                str(staff_id): {
+                    'first_name': data['first_name'],
+                    'last_name': data['last_name'],
+                    'email': data['email'],
+                    'role': data['role'],
+                    'staff_id': staff_id,
+                }
+            })
+        except Exception:
+            pass
         return jsonify({'success': True, 'staff_id': staff_id}), 201
     return jsonify({'success': False, 'error': 'Failed to create staff member'}), 500
 

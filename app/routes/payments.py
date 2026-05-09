@@ -1,6 +1,7 @@
 """Payments API Routes"""
 from flask import Blueprint, jsonify, request
 
+from app.services.firebase_client import FirebaseClient
 from app.services.payment_service import PaymentService
 from app.utils.validators import Validators
 
@@ -81,6 +82,17 @@ def record_payment():
 
     result = PaymentService.record_payment(booking_id=booking_id, amount=amount, method=method)
     if result.get('success'):
+        try:
+            FirebaseClient.backup_data('payments', {
+                str(result.get('payment_id', 'new')): {
+                    'booking_id': booking_id,
+                    'amount': amount,
+                    'method': method,
+                    'payment_id': result.get('payment_id'),
+                }
+            })
+        except Exception:
+            pass
         return jsonify(result), 201
 
     return jsonify(result), 400
@@ -137,6 +149,15 @@ def process_refund():
         refund_amount=refund_amount,
     )
     if result.get('success'):
+        try:
+            FirebaseClient.backup_data('refunds', {
+                str(cancellation_id): {
+                    'cancellation_id': cancellation_id,
+                    'refund_amount': refund_amount,
+                }
+            })
+        except Exception:
+            pass
         return jsonify(result), 200
 
     return jsonify(result), 400

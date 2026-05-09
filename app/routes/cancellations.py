@@ -4,6 +4,7 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 
 from app.services.cancellation_service import CancellationService
+from app.services.firebase_client import FirebaseClient
 from app.utils.validators import Validators
 
 cancellations_bp = Blueprint('cancellations', __name__, url_prefix='/api/cancellations')
@@ -75,6 +76,17 @@ def create_cancellation():
     )
 
     if result.get('success'):
+        try:
+            FirebaseClient.backup_data('cancellations', {
+                str(result.get('cancellation_id', 'new')): {
+                    'booking_id': booking_id,
+                    'reason': reason,
+                    'staff_id': staff_id,
+                    'cancellation_id': result.get('cancellation_id'),
+                }
+            })
+        except Exception:
+            pass
         return jsonify(result), 201
 
     return jsonify(result), 400

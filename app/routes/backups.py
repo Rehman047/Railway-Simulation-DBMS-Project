@@ -4,7 +4,9 @@ Endpoints for database backup and restoration
 """
 from flask import Blueprint, jsonify, request
 from app.services.backup_service import BackupService
+from app.services.firebase_client import FirebaseClient
 from app.utils.decorators import admin_required
+
 
 backups_bp = Blueprint('backups', __name__, url_prefix='/api/backups')
 

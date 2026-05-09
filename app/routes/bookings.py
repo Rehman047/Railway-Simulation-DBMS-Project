@@ -7,6 +7,7 @@ from flask import Blueprint, jsonify, request
 from app.db import Database
 from app.queries.booking_queries import GET_PASSENGER_BOOKINGS
 from app.services.booking_service import BookingService
+from app.services.firebase_client import FirebaseClient
 from app.services.validators import validate_create_booking
 from app.utils.validators import Validators
 
@@ -78,6 +79,18 @@ def create_booking():
     )
 
     if result.get('success'):
+        try:
+            FirebaseClient.backup_data('bookings', {
+                str(result.get('booking_id', 'new')): {
+                    'passenger_id': data['passenger_id'],
+                    'schedule_id': data['schedule_id'],
+                    'seat_id': data['seat_id'],
+                    'fare_amount': data['fare_amount'],
+                    'booking_id': result.get('booking_id'),
+                }
+            })
+        except Exception:
+            pass
         return jsonify(result), 201
     return jsonify(result), 400
 
@@ -125,6 +138,16 @@ def cancel_booking(booking_id: int):
     )
 
     if result.get('success'):
+        try:
+            FirebaseClient.backup_data('cancellations_from_bookings', {
+                str(booking_id): {
+                    'booking_id': booking_id,
+                    'reason': reason,
+                    'staff_id': staff_id,
+                }
+            })
+        except Exception:
+            pass
         return jsonify(result), 200
 
     # keep service error semantics

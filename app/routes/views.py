@@ -5,6 +5,8 @@ No JavaScript needed — data is injected server-side via Jinja2.
 """
 from flask import Blueprint, render_template
 from app.db import Database
+from app.services.firebase_client import FirebaseClient
+
 
 views_bp = Blueprint('views', __name__)
 

@@ -3,6 +3,7 @@ Passenger API Routes
 REST endpoints for passenger management
 """
 from flask import Blueprint, request, jsonify
+from app.services.firebase_client import FirebaseClient
 from app.services.passenger_service import PassengerService
 from app.services.validators import validate_create_passenger, validate_update_passenger
 
@@ -60,6 +61,15 @@ def create_passenger():
 
     result = PassengerService.create_passenger(data)
     if result['success']:
+        try:
+            FirebaseClient.backup_data('passengers', {
+                str(result.get('passenger_id', 'new')): {
+                    **data,
+                    'passenger_id': result.get('passenger_id'),
+                }
+            })
+        except Exception:
+            pass
         return jsonify(result), 201
     return jsonify(result), 400
 

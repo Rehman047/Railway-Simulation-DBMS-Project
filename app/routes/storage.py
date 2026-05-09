@@ -5,6 +5,8 @@ Endpoints for file and image uploads/downloads
 from flask import Blueprint, request, jsonify, send_file
 from werkzeug.datastructures import FileStorage
 from app.services.file_storage_service import FileStorageService
+from app.services.firebase_client import FirebaseClient
+
 
 storage_bp = Blueprint('storage', __name__, url_prefix='/api/storage')
 

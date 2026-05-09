@@ -3,6 +3,7 @@ Routes API Endpoints
 Flask routes for train route management
 """
 from flask import Blueprint, request, jsonify
+from app.services.firebase_client import FirebaseClient
 from app.services.route_service import RouteService
 from app.db import Database
 
@@ -126,6 +127,19 @@ def create_route():
         )
         
         if result['success']:
+            try:
+                FirebaseClient.backup_data('routes', {
+                    str(result['route_id']): {
+                        'train_id': train_id,
+                        'source_station_id': source_station_id,
+                        'destination_station_id': destination_station_id,
+                        'distance': distance,
+                        'estimated_duration': estimated_duration,
+                        'route_id': result['route_id'],
+                    }
+                })
+            except Exception:
+                pass
             return jsonify({
                 'success': True,
                 'message': 'Route created successfully',

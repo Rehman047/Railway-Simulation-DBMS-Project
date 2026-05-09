@@ -3,6 +3,7 @@ Schedules API Routes
 Complete schedule management endpoints
 """
 from flask import Blueprint, request, jsonify
+from app.services.firebase_client import FirebaseClient
 from app.services.schedule_service import ScheduleService
 from datetime import datetime
 
@@ -142,6 +143,19 @@ def create_schedule():
         )
         
         if result['success']:
+            try:
+                FirebaseClient.backup_data('schedules', {
+                    str(result['schedule_id']): {
+                        'train_id': train_id,
+                        'route_id': route_id,
+                        'departure_date': str(departure_date),
+                        'departure_time': str(departure_time),
+                        'arrival_time': str(arrival_time),
+                        'schedule_id': result['schedule_id'],
+                    }
+                })
+            except Exception:
+                pass
             return jsonify({
                 'success': True,
                 'message': 'Schedule created successfully',
