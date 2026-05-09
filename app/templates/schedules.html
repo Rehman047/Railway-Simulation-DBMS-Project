@@ -167,7 +167,13 @@
 </div>
 
 <script>
+let editingScheduleId = null;
+
 function showAddScheduleForm() {
+  editingScheduleId = null;
+  document.querySelector('#scheduleModal h2').textContent = 'Add New Schedule';
+  document.querySelector('#scheduleForm .btn-primary').textContent = 'Add Schedule';
+  document.getElementById('scheduleForm').reset();
   document.getElementById('scheduleModal').style.display = 'flex';
 }
 
@@ -175,96 +181,158 @@ function closeScheduleModal() {
   document.getElementById('scheduleModal').style.display = 'none';
 }
 
-document.getElementById('scheduleForm').addEventListener('submit', function(e) {
+async function getScheduleOccupancy(scheduleId) {
+  const res = await fetch(`/api/schedules/${scheduleId}/occupancy`);
+  const result = await res.json();
+  if (!result.success) {
+    alert(result.error || 'Unable to fetch occupancy');
+    return;
+  }
+  alert(`Schedule #${scheduleId}\nTotal Seats: ${result.total_seats}\nBooked: ${result.booked_seats}\nAvailable: ${result.available_seats}\nOccupancy: ${result.occupancy_percentage}%`);
+}
+
+async function editSchedule(scheduleId) {
+  const res = await fetch(`/api/schedules/${scheduleId}`);
+  const result = await res.json();
+  if (!result.success) {
+    alert(result.error || 'Unable to load schedule');
+    return;
+  }
+  const s = result.data;
+  editingScheduleId = scheduleId;
+  document.querySelector('#scheduleModal h2').textContent = `Edit Schedule #${scheduleId}`;
+  document.querySelector('#scheduleForm .btn-primary').textContent = 'Update Schedule';
+  document.getElementById('scheduleModal').style.display = 'flex';
+
+  document.querySelector('#scheduleForm select[name="train_id"]').value = s.train_id;
+  document.querySelector('#scheduleForm select[name="route_id"]').value = s.route_id;
+  document.querySelector('#scheduleForm input[name="departure_date"]').value = s.departure_date;
+  document.querySelector('#scheduleForm input[name="departure_time"]').value = (s.departure_time || '').slice(0, 5);
+  document.querySelector('#scheduleForm input[name="arrival_time"]').value = (s.arrival_time || '').slice(0, 5);
+  document.querySelector('#scheduleForm select[name="schedule_status"]').value = (s.schedule_status || 'scheduled').toLowerCase();
+}
+
+async function deleteSchedule(scheduleId) {
+  if (!confirm(`Delete schedule #${scheduleId}?`)) return;
+  const res = await fetch(`/api/schedules/${scheduleId}`, { method: 'DELETE' });
+  const result = await res.json();
+  if (result.success) {
+    alert('Schedule deleted');
+    await loadSchedules();
+    return;
+  }
+  alert(result.error || 'Failed to delete schedule');
+}
+
+async function cancelSchedule(scheduleId) {
+  if (!confirm(`Cancel schedule #${scheduleId}?`)) return;
+  const reason = prompt('Enter cancellation reason:', 'Cancelled from frontend');
+  if (!reason) return;
+  const res = await fetch(`/api/schedules/${scheduleId}/cancel`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason })
+  });
+  const result = await res.json();
+  if (result.success) {
+    alert(`Schedule cancelled. Cascaded bookings: ${result.cancelled_bookings || 0}`);
+    await loadSchedules();
+    return;
+  }
+  alert(result.error || 'Failed to cancel schedule');
+}
+
+document.getElementById('scheduleForm').addEventListener('submit', async function(e) {
   e.preventDefault();
-  
   const formData = new FormData(this);
   const data = {
-    train_id: parseInt(formData.get('train_id')),
-    route_id: parseInt(formData.get('route_id')),
+    train_id: parseInt(formData.get('train_id'), 10),
+    route_id: parseInt(formData.get('route_id'), 10),
     departure_date: formData.get('departure_date'),
     departure_time: formData.get('departure_time'),
     arrival_time: formData.get('arrival_time'),
     schedule_status: formData.get('schedule_status') || 'scheduled'
   };
-  
-  fetch('/api/schedules', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
-  })
-  .then(response => response.json())
-  .then(result => {
-    if (result.success) {
-      alert('Schedule added successfully! ID: ' + result.schedule_id);
-      closeScheduleModal();
-      document.getElementById('scheduleForm').reset();
-      loadSchedules();
-    } else {
-      alert('Error: ' + (result.error || result.errors?.join(', ') || 'Unknown error'));
-    }
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    alert('Failed to add schedule: ' + error.message);
+
+  const endpoint = editingScheduleId ? `/api/schedules/${editingScheduleId}` : '/api/schedules';
+  const method = editingScheduleId ? 'PUT' : 'POST';
+  const payload = editingScheduleId
+    ? { departure_time: data.departure_time, arrival_time: data.arrival_time }
+    : data;
+
+  const response = await fetch(endpoint, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
   });
+  const result = await response.json();
+
+  if (result.success) {
+    alert(editingScheduleId ? 'Schedule updated successfully' : `Schedule added successfully! ID: ${result.schedule_id}`);
+    closeScheduleModal();
+    document.getElementById('scheduleForm').reset();
+    editingScheduleId = null;
+    await loadSchedules();
+  } else {
+    alert(`Error: ${result.error || (result.errors || []).join(', ') || 'Unknown error'}`);
+  }
 });
 
-function loadSchedules() {
-  fetch('/api/schedules?page=1&limit=20')
-    .then(response => response.json())
-    .then(result => {
-      if (result.success && result.data) {
-        const tbody = document.getElementById('schedulesTable');
-        tbody.innerHTML = '';
-        result.data.forEach(schedule => {
-          const statusBadgeClass = schedule.schedule_status === 'scheduled' ? 'badge-success' : 
-                                   schedule.schedule_status === 'running' ? 'badge-info' :
-                                   schedule.schedule_status === 'completed' ? 'badge-secondary' : 'badge-danger';
-          const row = `<tr>
-            <td>#${schedule.schedule_id}</td>
-            <td>${schedule.train_name || 'Train ' + schedule.train_id}</td>
-            <td>${schedule.source_station || 'N/A'} → ${schedule.dest_station || 'N/A'}</td>
-            <td>${schedule.departure_date}</td>
-            <td>${schedule.departure_time}</td>
-            <td>${schedule.arrival_time}</td>
-            <td><span class="badge ${statusBadgeClass}">${schedule.schedule_status}</span></td>
-            <td><span class="available-seats">${schedule.available_seats || '0'}</span></td>
-            <td>
-              <button class="btn-icon" title="View details">👁️</button>
-              <button class="btn-icon" title="Edit">✏️</button>
-              <button class="btn-icon" title="Seats">💺</button>
-            </td>
-          </tr>`;
-          tbody.innerHTML += row;
-        });
-      }
-    })
-    .catch(error => console.error('Error loading schedules:', error));
+function statusClass(status) {
+  const normalized = (status || '').toLowerCase();
+  if (normalized === 'scheduled') return 'badge-success';
+  if (normalized === 'running') return 'badge-info';
+  if (normalized === 'completed') return 'badge-secondary';
+  return 'badge-danger';
+}
+
+async function loadSchedules() {
+  const response = await fetch('/api/schedules?page=1&limit=50');
+  const result = await response.json();
+  if (!(result.success && result.data)) return;
+
+  const tbody = document.getElementById('schedulesTable');
+  tbody.innerHTML = '';
+  result.data.forEach((schedule) => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>#${schedule.schedule_id}</td>
+      <td>${schedule.train_name || ('Train ' + schedule.train_id)}</td>
+      <td>${schedule.source_station || 'N/A'} → ${schedule.destination_station || 'N/A'}</td>
+      <td>${schedule.departure_date || 'N/A'}</td>
+      <td>${schedule.departure_time || 'N/A'}</td>
+      <td>${schedule.arrival_time || 'N/A'}</td>
+      <td><span class="badge ${statusClass(schedule.schedule_status)}">${schedule.schedule_status || 'scheduled'}</span></td>
+      <td><span class="available-seats">${schedule.available_seats || '0'}</span></td>
+      <td>
+        <button class="btn-icon" title="Occupancy" onclick="getScheduleOccupancy(${schedule.schedule_id})">👁️</button>
+        <button class="btn-icon" title="Edit" onclick="editSchedule(${schedule.schedule_id})">✏️</button>
+        <button class="btn-icon" title="Cancel" onclick="cancelSchedule(${schedule.schedule_id})">❌</button>
+        <button class="btn-icon" title="Delete" onclick="deleteSchedule(${schedule.schedule_id})">🗑️</button>
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
   loadSchedules();
 });
 
-// Filter functionality
 function filterSchedules() {
   const dateFilter = document.getElementById('dateFilter').value;
   const trainFilter = document.getElementById('trainFilter').value.toLowerCase();
   const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
-  
+
   const rows = document.querySelectorAll('#schedulesTable tr');
-  rows.forEach(row => {
+  rows.forEach((row) => {
     const date = row.cells[3].textContent;
     const train = row.cells[1].textContent.toLowerCase();
     const status = row.cells[6].textContent.toLowerCase();
-    
-    const dateMatch = !dateFilter || date === dateFilter;
+
+    const dateMatch = !dateFilter || date.includes(dateFilter);
     const trainMatch = !trainFilter || train.includes(trainFilter);
     const statusMatch = !statusFilter || status.includes(statusFilter);
-    
     row.style.display = (dateMatch && trainMatch && statusMatch) ? '' : 'none';
   });
 }

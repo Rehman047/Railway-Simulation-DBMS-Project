@@ -166,7 +166,13 @@
 </div>
 
 <script>
+let editingBookingId = null;
+
 function showAddBookingForm() {
+  editingBookingId = null;
+  document.querySelector('#bookingModal h2').textContent = 'Create New Booking';
+  document.querySelector('#bookingForm .btn-primary').textContent = 'Create Booking';
+  document.getElementById('bookingForm').reset();
   document.getElementById('bookingModal').style.display = 'flex';
 }
 
@@ -174,110 +180,234 @@ function closeBookingModal() {
   document.getElementById('bookingModal').style.display = 'none';
 }
 
-document.getElementById('bookingForm').addEventListener('submit', function(e) {
-  e.preventDefault();
-  
-  const formData = new FormData(this);
-  const data = {
-    passenger_id: parseInt(formData.get('passenger_id')),
-    schedule_id: parseInt(formData.get('schedule_id')),
-    seat_id: parseInt(formData.get('seat_id')),
-    fare_amount: parseFloat(formData.get('fare_amount'))
-  };
-  
-  fetch('/api/bookings', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
-  })
-  .then(response => response.json())
-  .then(result => {
-    if (result.success) {
-      alert('Booking created successfully! ID: ' + result.booking_id);
-      closeBookingModal();
-      document.getElementById('bookingForm').reset();
-      loadBookings();
-    } else {
-      alert('Error: ' + (result.error || result.errors?.join(', ') || 'Unknown error'));
-    }
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    alert('Failed to create booking: ' + error.message);
-  });
-});
+async function loadPassengersForDropdown() {
+  const res = await fetch('/api/passengers?page=1&limit=200');
+  const result = await res.json();
+  const select = document.querySelector('#bookingForm select[name="passenger_id"]');
+  select.innerHTML = '<option value="">Select Passenger</option>';
 
-function loadBookings() {
-  fetch('/api/bookings?page=1&limit=20')
-    .then(response => response.json())
-    .then(result => {
-      if (result.success && result.data) {
-        const tbody = document.getElementById('bookingsTable');
-        tbody.innerHTML = '';
-        result.data.forEach(booking => {
-          const statusBadgeClass = booking.booking_status === 'confirmed' ? 'badge-success' : 
-                                   booking.booking_status === 'pending' ? 'badge-warning' : 'badge-danger';
-          const paymentBadgeClass = booking.payment_status === 'completed' ? 'badge-success' : 
-                                    booking.payment_status === 'pending' ? 'badge-warning' : 'badge-info';
-          const row = `<tr>
-            <td>#BK-${String(booking.booking_id).padStart(3, '0')}</td>
-            <td>${booking.passenger_name || 'Passenger ' + booking.passenger_id}</td>
-            <td>${booking.train_name || 'Train ' + booking.train_id}</td>
-            <td>${booking.route || 'N/A'}</td>
-            <td>${booking.seat_number || 'Seat ' + booking.seat_id}</td>
-            <td>${booking.departure_date || 'N/A'}</td>
-            <td>₹${booking.fare_amount || '0'}</td>
-            <td><span class="badge ${statusBadgeClass}">${booking.booking_status || 'pending'}</span></td>
-            <td><span class="badge ${paymentBadgeClass}">${booking.payment_status || 'pending'}</span></td>
-            <td>
-              <button class="btn-icon" title="View details">👁️</button>
-              <button class="btn-icon" title="Edit">✏️</button>
-              <button class="btn-icon" title="Cancel">❌</button>
-            </td>
-          </tr>`;
-          tbody.innerHTML += row;
-        });
-      }
-    })
-    .catch(error => console.error('Error loading bookings:', error));
+  if (result.success && result.data) {
+    result.data.forEach((p) => {
+      const opt = document.createElement('option');
+      opt.value = p.passenger_id;
+      opt.textContent = `${p.first_name} ${p.last_name} (#${p.passenger_id})`;
+      select.appendChild(opt);
+    });
+  }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-  loadBookings();
+async function loadSchedulesForDropdown() {
+  const res = await fetch('/api/schedules?page=1&limit=200');
+  const result = await res.json();
+  const select = document.querySelector('#bookingForm select[name="schedule_id"]');
+  select.innerHTML = '<option value="">Select Schedule</option>';
+
+  if (result.success && result.data) {
+    result.data.forEach((s) => {
+      const source = s.source_station || 'Unknown';
+      const destination = s.destination_station || 'Unknown';
+      const opt = document.createElement('option');
+      opt.value = s.schedule_id;
+      opt.textContent = `#${s.schedule_id} ${s.train_name || ''} (${source} -> ${destination}) ${s.departure_date}`;
+      select.appendChild(opt);
+    });
+  }
+}
+
+async function loadAvailableSeats(scheduleId, selectedSeatId = null) {
+  const seatSelect = document.querySelector('#bookingForm select[name="seat_id"]');
+  seatSelect.innerHTML = '<option value="">Select Seat</option>';
+  if (!scheduleId) return;
+
+  const res = await fetch(`/api/bookings/available-seats?schedule_id=${scheduleId}`);
+  const result = await res.json();
+  if (result.success && result.data) {
+    result.data.forEach((seat) => {
+      const opt = document.createElement('option');
+      opt.value = seat.seat_id;
+      opt.textContent = `${seat.coach_number}-${seat.seat_number} (${seat.seat_class || 'N/A'})`;
+      if (selectedSeatId && Number(selectedSeatId) === Number(seat.seat_id)) {
+        opt.selected = true;
+      }
+      seatSelect.appendChild(opt);
+    });
+  }
+}
+
+document.querySelector('#bookingForm select[name="schedule_id"]').addEventListener('change', async function() {
+  await loadAvailableSeats(this.value);
 });
 
-// Filter functionality
+document.getElementById('bookingForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+
+  const formData = new FormData(this);
+  const data = {
+    passenger_id: parseInt(formData.get('passenger_id'), 10),
+    schedule_id: parseInt(formData.get('schedule_id'), 10),
+    seat_id: parseInt(formData.get('seat_id'), 10),
+    fare_amount: parseFloat(formData.get('fare_amount'))
+  };
+
+  const endpoint = editingBookingId ? `/api/bookings/${editingBookingId}` : '/api/bookings';
+  const method = editingBookingId ? 'PUT' : 'POST';
+
+  const response = await fetch(endpoint, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  const result = await response.json();
+
+  if (result.success) {
+    alert(editingBookingId ? 'Booking updated successfully' : `Booking created successfully! ID: ${result.booking_id}`);
+    closeBookingModal();
+    this.reset();
+    editingBookingId = null;
+    await loadBookings();
+  } else {
+    alert(`Error: ${result.error || (result.errors || []).join(', ') || 'Unknown error'}`);
+  }
+});
+
+function buildStatusBadge(status) {
+  const normalized = (status || 'pending').toLowerCase();
+  if (normalized === 'confirmed') return 'badge-success';
+  if (normalized === 'pending') return 'badge-warning';
+  return 'badge-danger';
+}
+
+async function loadBookings() {
+  const response = await fetch('/api/bookings?page=1&limit=50');
+  const result = await response.json();
+
+  if (!(result.success && result.data)) return;
+
+  const tbody = document.getElementById('bookingsTable');
+  tbody.innerHTML = '';
+
+  result.data.forEach((booking) => {
+    const passengerName = `${booking.first_name || ''} ${booking.last_name || ''}`.trim() || `Passenger ${booking.passenger_id}`;
+    const route = `${booking.source_station || 'N/A'} -> ${booking.destination_station || 'N/A'}`;
+    const paymentStatus = (booking.booking_status || '').toLowerCase() === 'confirmed' ? 'completed' : 'pending';
+    const paymentBadgeClass = paymentStatus === 'completed' ? 'badge-success' : 'badge-warning';
+
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>#BK-${String(booking.booking_id).padStart(3, '0')}</td>
+      <td>${passengerName}</td>
+      <td>${booking.train_name || 'N/A'}</td>
+      <td>${route}</td>
+      <td>${booking.seat_id || 'N/A'}</td>
+      <td>${booking.departure_date || 'N/A'} ${booking.departure_time || ''}</td>
+      <td>₹${booking.fare_amount || '0'}</td>
+      <td><span class="badge ${buildStatusBadge(booking.booking_status)}">${booking.booking_status || 'pending'}</span></td>
+      <td><span class="badge ${paymentBadgeClass}">${paymentStatus}</span></td>
+      <td>
+        <button class="btn-icon" title="View details" onclick="viewBooking(${booking.booking_id})">👁️</button>
+        <button class="btn-icon" title="Edit" onclick="editBooking(${booking.booking_id})">✏️</button>
+        <button class="btn-icon" title="Cancel" onclick="cancelBooking(${booking.booking_id})">❌</button>
+        <button class="btn-icon" title="Delete" onclick="deleteBooking(${booking.booking_id})">🗑️</button>
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+async function viewBooking(bookingId) {
+  const res = await fetch(`/api/bookings/${bookingId}`);
+  const result = await res.json();
+  if (!result.success) {
+    alert(result.error || 'Failed to fetch booking details');
+    return;
+  }
+  const b = result.data;
+  alert(`Booking #${b.booking_id}\nPassenger: ${b.first_name} ${b.last_name}\nTrain: ${b.train_name}\nRoute: ${b.source_station} -> ${b.destination_station}\nFare: ${b.fare_amount}\nStatus: ${b.booking_status}`);
+}
+
+async function editBooking(bookingId) {
+  const res = await fetch(`/api/bookings/${bookingId}`);
+  const result = await res.json();
+  if (!result.success) {
+    alert(result.error || 'Unable to load booking');
+    return;
+  }
+
+  const booking = result.data;
+  editingBookingId = bookingId;
+  document.querySelector('#bookingModal h2').textContent = `Edit Booking #${bookingId}`;
+  document.querySelector('#bookingForm .btn-primary').textContent = 'Update Booking';
+  document.getElementById('bookingModal').style.display = 'flex';
+
+  await loadPassengersForDropdown();
+  await loadSchedulesForDropdown();
+
+  document.querySelector('#bookingForm select[name="passenger_id"]').value = booking.passenger_id;
+  document.querySelector('#bookingForm select[name="schedule_id"]').value = booking.schedule_id;
+  await loadAvailableSeats(booking.schedule_id, booking.seat_id);
+  document.querySelector('#bookingForm input[name="fare_amount"]').value = booking.fare_amount;
+}
+
+async function cancelBooking(bookingId) {
+  if (!confirm(`Cancel booking #${bookingId}?`)) return;
+  const reason = prompt('Enter cancellation reason:', 'Cancelled from frontend');
+  if (!reason) return;
+
+  const res = await fetch(`/api/bookings/${bookingId}/cancel`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason, staff_id: 1 })
+  });
+  const result = await res.json();
+  if (result.success) {
+    alert('Booking cancelled');
+    await loadBookings();
+    return;
+  }
+  alert(result.error || 'Failed to cancel booking');
+}
+
+async function deleteBooking(bookingId) {
+  if (!confirm(`Delete booking #${bookingId}? This cannot be undone.`)) return;
+  const res = await fetch(`/api/bookings/${bookingId}`, { method: 'DELETE' });
+  const result = await res.json();
+  if (result.success) {
+    alert('Booking deleted');
+    await loadBookings();
+    return;
+  }
+  alert(result.error || 'Failed to delete booking');
+}
+
+document.addEventListener('DOMContentLoaded', async function() {
+  await Promise.all([
+    loadPassengersForDropdown(),
+    loadSchedulesForDropdown(),
+    loadBookings()
+  ]);
+});
+
 document.getElementById('searchInput').addEventListener('keyup', function() {
   const searchTerm = this.value.toLowerCase();
   const rows = document.querySelectorAll('#bookingsTable tr');
-  rows.forEach(row => {
-    const text = row.textContent.toLowerCase();
-    row.style.display = text.includes(searchTerm) ? '' : 'none';
+  rows.forEach((row) => {
+    row.style.display = row.textContent.toLowerCase().includes(searchTerm) ? '' : 'none';
   });
 });
 
-document.getElementById('statusFilter').addEventListener('change', function() {
-  filterBookings();
-});
-
-document.getElementById('dateFilter').addEventListener('change', function() {
-  filterBookings();
-});
+document.getElementById('statusFilter').addEventListener('change', filterBookings);
+document.getElementById('dateFilter').addEventListener('change', filterBookings);
 
 function filterBookings() {
   const status = document.getElementById('statusFilter').value.toLowerCase();
   const date = document.getElementById('dateFilter').value;
   const rows = document.querySelectorAll('#bookingsTable tr');
-  
-  rows.forEach(row => {
+
+  rows.forEach((row) => {
     const rowStatus = row.cells[7].textContent.toLowerCase();
     const rowDate = row.cells[5].textContent;
-    
     const statusMatch = !status || rowStatus.includes(status);
     const dateMatch = !date || rowDate.includes(date);
-    
     row.style.display = (statusMatch && dateMatch) ? '' : 'none';
   });
 }

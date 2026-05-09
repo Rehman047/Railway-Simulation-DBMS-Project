@@ -147,3 +147,81 @@ class BookingService:
     def get_booking_with_details(booking_id):
         """Get full booking details with passenger, schedule, and seat info"""
         return Database.fetch_one(GET_BOOKING_DETAILS, (booking_id,))
+
+    @staticmethod
+    def update_booking(booking_id, passenger_id, schedule_id, seat_id, fare_amount):
+        """
+        Update booking core fields.
+        Ensures the requested seat remains available for the target schedule.
+        """
+        try:
+            def update_transaction(conn):
+                cursor = conn.cursor()
+
+                # Ensure booking exists
+                cursor.execute(
+                    "SELECT booking_id FROM bookings WHERE booking_id = %s",
+                    (booking_id,)
+                )
+                if not cursor.fetchone():
+                    cursor.close()
+                    return {'success': False, 'error': 'Booking not found'}
+
+                # Validate references
+                cursor.execute("SELECT passenger_id FROM passengers WHERE passenger_id = %s", (passenger_id,))
+                if not cursor.fetchone():
+                    cursor.close()
+                    return {'success': False, 'error': 'Passenger not found'}
+
+                cursor.execute("SELECT schedule_id FROM schedules WHERE schedule_id = %s", (schedule_id,))
+                if not cursor.fetchone():
+                    cursor.close()
+                    return {'success': False, 'error': 'Schedule not found'}
+
+                cursor.execute("SELECT seat_id FROM seats WHERE seat_id = %s", (seat_id,))
+                if not cursor.fetchone():
+                    cursor.close()
+                    return {'success': False, 'error': 'Seat not found'}
+
+                # Seat availability check excluding this booking itself
+                cursor.execute(
+                    """SELECT booking_id
+                       FROM bookings
+                       WHERE schedule_id = %s
+                         AND seat_id = %s
+                         AND booking_status != 'cancelled'
+                         AND booking_id != %s""",
+                    (schedule_id, seat_id, booking_id)
+                )
+                if cursor.fetchone():
+                    cursor.close()
+                    return {'success': False, 'error': 'Seat already booked for this schedule'}
+
+                cursor.execute(
+                    UPDATE_BOOKING,
+                    (passenger_id, schedule_id, seat_id, fare_amount, booking_id)
+                )
+                affected = cursor.rowcount
+                cursor.close()
+
+                if affected <= 0:
+                    return {'success': False, 'error': 'No changes made'}
+                return {'success': True, 'message': 'Booking updated successfully'}
+
+            result = Database.transaction(update_transaction)
+            return result if result else {'success': False, 'error': 'Transaction failed'}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+    @staticmethod
+    def delete_booking(booking_id):
+        """
+        Hard-delete a booking record.
+        """
+        try:
+            affected = Database.execute(DELETE_BOOKING, (booking_id,))
+            if affected > 0:
+                return {'success': True, 'message': 'Booking deleted successfully'}
+            return {'success': False, 'error': 'Booking not found'}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
