@@ -172,7 +172,14 @@ def delete_train(train_id: int):
             pass
         return jsonify({'success': True, 'message': 'Train deleted successfully'}), 200
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        error_msg = str(e)
+        # Check for foreign key constraint errors
+        if 'foreign key constraint' in error_msg.lower():
+            return jsonify({
+                'success': False,
+                'error': 'Cannot delete train: it has associated coaches or other dependent records'
+            }), 409  # Conflict status
+        return jsonify({'success': False, 'error': error_msg}), 400
 
 
 # ── Sub-resources ─────────────────────────────────────────────

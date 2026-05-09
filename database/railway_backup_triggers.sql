@@ -4,10 +4,7 @@
 -- PostgreSQL version
 -- ============================================================
 
--- Drop trigger function if it already exists
-DROP FUNCTION IF EXISTS copy_to_backup() CASCADE;
-
--- Drop backup tables if they already exist
+-- Drop backup tables if they already exist (before dropping function)
 DROP TABLE IF EXISTS cancellations_backup CASCADE;
 DROP TABLE IF EXISTS payments_backup CASCADE;
 DROP TABLE IF EXISTS bookings_backup CASCADE;
@@ -23,6 +20,25 @@ DROP TABLE IF EXISTS services_backup CASCADE;
 DROP TABLE IF EXISTS staff_backup CASCADE;
 DROP TABLE IF EXISTS passengers_backup CASCADE;
 DROP TABLE IF EXISTS stations_backup CASCADE;
+
+-- Drop trigger function if it already exists
+DROP FUNCTION IF EXISTS copy_to_backup() CASCADE;
+
+-- ============================================================
+-- GENERIC TRIGGER FUNCTION (create before tables)
+-- Inserts the NEW row into the corresponding backup table
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION copy_to_backup()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    EXECUTE format('INSERT INTO %I_backup SELECT ($1).*', TG_TABLE_NAME)
+    USING NEW;
+    RETURN NEW;
+END;
+$$;
 
 -- ============================================================
 -- BACKUP TABLES
@@ -44,22 +60,6 @@ CREATE TABLE schedules_backup (LIKE schedules INCLUDING DEFAULTS INCLUDING IDENT
 CREATE TABLE bookings_backup (LIKE bookings INCLUDING DEFAULTS INCLUDING IDENTITY INCLUDING GENERATED);
 CREATE TABLE payments_backup (LIKE payments INCLUDING DEFAULTS INCLUDING IDENTITY INCLUDING GENERATED);
 CREATE TABLE cancellations_backup (LIKE cancellations INCLUDING DEFAULTS INCLUDING IDENTITY INCLUDING GENERATED);
-
--- ============================================================
--- GENERIC TRIGGER FUNCTION
--- Inserts the NEW row into the corresponding backup table
--- ============================================================
-
-CREATE OR REPLACE FUNCTION copy_to_backup()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    EXECUTE format('INSERT INTO %I_backup SELECT ($1).*', TG_TABLE_NAME)
-    USING NEW;
-    RETURN NEW;
-END;
-$$;
 
 -- ============================================================
 -- AFTER INSERT TRIGGERS

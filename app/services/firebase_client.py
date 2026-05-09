@@ -4,7 +4,8 @@ Integration with Firebase for data backup and cloud storage
 """
 import os
 import json
-from datetime import datetime
+from datetime import datetime, date, time
+from decimal import Decimal
 from firebase_admin import credentials, firestore, storage
 import firebase_admin
 
@@ -15,6 +16,37 @@ class FirebaseClient:
     _db = None
     _storage = None
     _initialized = False
+    
+    @staticmethod
+    def _convert_firestore_types(obj):
+        """
+        Convert Python types to Firestore-compatible JSON types
+        
+        Args:
+            obj: Object to convert (dict, list, or scalar)
+        
+        Returns:
+            Converted object safe for Firestore
+        """
+        if isinstance(obj, dict):
+            return {k: FirebaseClient._convert_firestore_types(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [FirebaseClient._convert_firestore_types(item) for item in obj]
+        elif isinstance(obj, Decimal):
+            # Convert Decimal to float for currency/numeric values
+            return float(obj)
+        elif isinstance(obj, date):
+            # Convert date to ISO format string
+            return obj.isoformat()
+        elif isinstance(obj, time):
+            # Convert time to ISO format string
+            return obj.isoformat()
+        elif isinstance(obj, datetime):
+            # Convert datetime to ISO format string
+            return obj.isoformat()
+        else:
+            # Return as-is for str, int, bool, None, etc.
+            return obj
     
     @classmethod
     def initialize(cls):
@@ -61,9 +93,12 @@ class FirebaseClient:
             count = 0
             
             for doc_id, doc_data in data.items():
+                # Convert all non-JSON-serializable types
+                converted_data = cls._convert_firestore_types(doc_data)
+                converted_data['backed_up_at'] = datetime.now().isoformat()
+                
                 doc_ref = cls._db.collection(collection_name).document(str(doc_id))
-                doc_data['backed_up_at'] = datetime.now().isoformat()
-                batch.set(doc_ref, doc_data)
+                batch.set(doc_ref, converted_data)
                 count += 1
                 
                 if count % batch_size == 0:
@@ -252,9 +287,11 @@ class FirebaseClient:
         
         try:
             doc_id = datetime.now().strftime('%Y%m%d_%H%M%S')
-            backup_data['timestamp'] = datetime.now().isoformat()
+            # Convert all types to Firestore-compatible format
+            converted_data = cls._convert_firestore_types(backup_data)
+            converted_data['timestamp'] = datetime.now().isoformat()
             
-            cls._db.collection('backup_history').document(doc_id).set(backup_data)
+            cls._db.collection('backup_history').document(doc_id).set(converted_data)
             
             return {
                 'success': True,

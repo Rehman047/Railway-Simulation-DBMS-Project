@@ -391,24 +391,6 @@ def demo():
     )
 
 
-# ── Firebase Frontend Demo ────────────────────────────────────────
-
-@views_bp.route('/firebase')
-def firebase_demo():
-    """Firebase frontend page — uses Firebase JS SDK to read/write from the browser."""
-    from flask import current_app
-    cfg = current_app.config
-    firebase_config = {
-        'apiKey':            cfg.get('FIREBASE_API_KEY', ''),
-        'authDomain':        cfg.get('FIREBASE_AUTH_DOMAIN', ''),
-        'projectId':         cfg.get('FIREBASE_PROJECT_ID', ''),
-        'storageBucket':     cfg.get('FIREBASE_STORAGE_BUCKET', ''),
-        'messagingSenderId': cfg.get('FIREBASE_MESSAGING_SENDER_ID', ''),
-        'appId':             cfg.get('FIREBASE_APP_ID', ''),
-    }
-    return render_template('firebase_demo.html', firebase_config=firebase_config)
-
-
 # ── One-Click Backup Dashboard ────────────────────────────────────
 
 @views_bp.route('/backup')

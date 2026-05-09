@@ -118,7 +118,7 @@ class Database:
         except psycopg2.Error as e:
             conn.rollback()
             print(f"Database error: {e}")
-            return 0
+            raise  # Re-raise exception so caller can handle it
         finally:
             DatabaseConnection.return_connection(conn)
     
