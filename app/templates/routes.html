@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+
+{% block title %}Routes - Railway DBMS{% endblock %}
+{% block page_title %}Routes{% endblock %}
+{% block page_subtitle %}Create and manage train routes{% endblock %}
+
+{% block content %}
+
+<div class="page-container">
+  <!-- Header with Filters -->
+  <div class="page-header">
+    <div class="filters">
+      <input type="text" id="searchInput" class="filter-input" placeholder="Search by train, source, destination...">
+      <select id="trainFilter" class="filter-select">
+        <option value="">All Trains</option>
+        <!-- Populated dynamically -->
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="showAddRouteForm()">+ Add New Route</button>
+  </div>
+
+  <!-- Routes Table -->
+  <div class="card">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Route ID</th>
+          <th>Train</th>
+          <th>From → To</th>
+          <th>Distance (km)</th>
+          <th>Duration (hrs)</th>
+          <th>Created</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="routesTable">
+        <!-- Routes will be loaded here dynamically -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination">
+    <button class="btn-pagination" onclick="previousPage()">← Previous</button>
+    <span class="page-info">Page <span id="currentPage">1</span> of <span id="totalPages">1</span></span>
+    <button class="btn-pagination" onclick="nextPage()">Next →</button>
+  </div>
+</div>
+
+<!-- Add/Edit Route Modal -->
+<div id="routeModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Add New Route</h2>
+      <button class="modal-close" onclick="closeRouteModal()">&times;</button>
+    </div>
+    <form id="routeForm" class="form">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Train *</label>
+          <select name="train_id" id="routeTrainSelect" required>
+            <option value="">Loading trains...</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Source Station *</label>
+          <select name="source_station_id" id="routeSourceStationSelect" required>
+            <option value="">Loading stations...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Destination Station *</label>
+          <select name="destination_station_id" id="routeDestStationSelect" required>
+            <option value="">Loading stations...</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Distance (km) *</label>
+          <input type="number" name="distance" required min="0.1" step="0.1" placeholder="e.g., 180.5">
+        </div>
+        <div class="form-group">
+          <label>Estimated Duration (hours) *</label>
+          <input type="number" name="estimated_duration" required min="0.1" step="0.1" placeholder="e.g., 4.5">
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeRouteModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Route</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+let currentPage = 1;
+let editingRouteId = null;
+
+function showAddRouteForm() {
+  editingRouteId = null;
+  document.querySelector('#routeModal h2').textContent = 'Add New Route';
+  document.querySelector('#routeForm .btn-primary').textContent = 'Add Route';
+  document.getElementById('routeForm').reset();
+  document.getElementById('routeModal').style.display = 'flex';
+}
+
+function closeRouteModal() {
+  document.getElementById('routeModal').style.display = 'none';
+  editingRouteId = null;
+}
+
+async function loadTrainsForRouteForm() {
+  const selects = [
+    document.getElementById('routeTrainSelect'),
+    document.getElementById('trainFilter')
+  ];
+  
+  try {
+    const res = await fetch('/api/trains?page=1&limit=200');
+    const result = await res.json();
+    
+    selects[0].innerHTML = '<option value="">Select Train</option>';
+    selects[1].innerHTML = '<option value="">All Trains</option>';
+    
+    if (result.success && result.data) {
+      result.data.forEach((t) => {
+        const opt1 = document.createElement('option');
+        opt1.value = t.train_id;
+        opt1.textContent = `${t.train_name || ''} - ${t.train_number || ''} (${t.train_type})`;
+        selects[0].appendChild(opt1);
+        
+        const opt2 = document.createElement('option');
+        opt2.value = t.train_id;
+        opt2.textContent = `${t.train_name || ''} - ${t.train_number || ''}`;
+        selects[1].appendChild(opt2);
+      });
+    }
+  } catch (e) {
+    console.error('Error loading trains:', e);
+  }
+}
+
+async function loadStationsForRouteForm() {
+  const selects = [
+    document.getElementById('routeSourceStationSelect'),
+    document.getElementById('routeDestStationSelect')
+  ];
+  
+  try {
+    const res = await fetch('/api/stations?page=1&limit=200');
+    const result = await res.json();
+    
+    selects.forEach(select => {
+      select.innerHTML = '<option value="">Select Station</option>';
+    });
+    
+    if (result.success && result.data) {
+      result.data.forEach((s) => {
+        selects.forEach(select => {
+          const opt = document.createElement('option');
+          opt.value = s.station_id;
+          opt.textContent = `${s.station_name} (${s.city})`;
+          select.appendChild(opt);
+        });
+      });
+    }
+  } catch (e) {
+    console.error('Error loading stations:', e);
+  }
+}
+
+document.getElementById('routeForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+
+  const formData = new FormData(this);
+  const data = {
+    train_id: parseInt(formData.get('train_id'), 10),
+    source_station_id: parseInt(formData.get('source_station_id'), 10),
+    destination_station_id: parseInt(formData.get('destination_station_id'), 10),
+    distance: parseFloat(formData.get('distance')),
+    estimated_duration: parseFloat(formData.get('estimated_duration'))
+  };
+
+  // Validate source != destination
+  if (data.source_station_id === data.destination_station_id) {
+    alert('Source and destination stations must be different');
+    return;
+  }
+
+  const endpoint = editingRouteId ? `/api/routes/${editingRouteId}` : '/api/routes';
+  const method = editingRouteId ? 'PUT' : 'POST';
+
+  const response = await fetch(endpoint, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  const result = await response.json();
+
+  if (result.success) {
+    alert(editingRouteId ? 'Route updated successfully' : `Route created successfully! ID: ${result.route_id}`);
+    closeRouteModal();
+    this.reset();
+    editingRouteId = null;
+    currentPage = 1;
+    await loadRoutes();
+  } else {
+    alert(`Error: ${result.error || (result.errors || []).join(', ') || 'Unknown error'}`);
+  }
+});
+
+function viewRoute(routeId) {
+  fetch(`/api/routes/${routeId}`)
+    .then(response => response.json())
+    .then(result => {
+      if (result.success && result.data) {
+        const r = result.data;
+        alert(`Route #${r.route_id}\nTrain: ${r.train_name} (${r.train_number})\nFrom: ${r.source_station} (${r.source_city})\nTo: ${r.destination_station} (${r.destination_city})\nDistance: ${r.distance} km\nDuration: ${r.estimated_duration} hours`);
+      } else {
+        alert('Failed to load route details');
+      }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function editRoute(routeId) {
+  fetch(`/api/routes/${routeId}`)
+    .then(response => response.json())
+    .then(result => {
+      if (result.success && result.data) {
+        const r = result.data;
+        editingRouteId = routeId;
+        document.querySelector('#routeModal h2').textContent = `Edit Route #${routeId}`;
+        document.querySelector('#routeForm .btn-primary').textContent = 'Update Route';
+        document.getElementById('routeModal').style.display = 'flex';
+
+        // Wait for dropdowns to load
+        setTimeout(() => {
+          document.querySelector('#routeForm select[name="train_id"]').value = r.train_id;
+          document.querySelector('#routeForm select[name="source_station_id"]').value = r.source_station_id;
+          document.querySelector('#routeForm select[name="destination_station_id"]').value = r.destination_station_id;
+          document.querySelector('#routeForm input[name="distance"]').value = r.distance;
+          document.querySelector('#routeForm input[name="estimated_duration"]').value = r.estimated_duration;
+        }, 100);
+      } else {
+        alert('Failed to load route');
+      }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+async function deleteRoute(routeId) {
+  if (!confirm(`Delete route #${routeId}? This action cannot be undone.`)) return;
+  
+  try {
+    const response = await fetch(`/api/routes/${routeId}`, { method: 'DELETE' });
+    const result = await response.json();
+    
+    if (result.success) {
+      alert('Route deleted successfully');
+      await loadRoutes();
+    } else {
+      alert('Error: ' + (result.error || 'Failed to delete route'));
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Failed to delete route: ' + error.message);
+  }
+}
+
+async function loadRoutes() {
+  const trainFilter = document.getElementById('trainFilter').value;
+  const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+  
+  try {
+    let url = `/api/routes?page=${currentPage}&limit=20`;
+    const response = await fetch(url);
+    const result = await response.json();
+
+    if (!(result.success && result.data)) {
+      document.getElementById('routesTable').innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">No routes found</td></tr>';
+      return;
+    }
+
+    const tbody = document.getElementById('routesTable');
+    tbody.innerHTML = '';
+
+    result.data.forEach((route) => {
+      // Apply filters
+      if (trainFilter && parseInt(route.train_id) !== parseInt(trainFilter)) return;
+      
+      const searchText = `${route.train_name} ${route.train_number} ${route.source_station} ${route.destination_station}`.toLowerCase();
+      if (searchTerm && !searchText.includes(searchTerm)) return;
+
+      const createdDate = new Date(route.created_at).toLocaleDateString();
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>#RT-${String(route.route_id).padStart(3, '0')}</td>
+        <td>${route.train_name || 'N/A'} (${route.train_number || 'N/A'})</td>
+        <td>${route.source_station || 'N/A'} → ${route.destination_station || 'N/A'}</td>
+        <td>${route.distance || '0'}</td>
+        <td>${route.estimated_duration || '0'}</td>
+        <td>${createdDate || 'N/A'}</td>
+        <td>
+          <button class="btn-icon" title="View details" onclick="viewRoute(${route.route_id})">👁️</button>
+          <button class="btn-icon" title="Edit" onclick="editRoute(${route.route_id})">✏️</button>
+          <button class="btn-icon" title="Delete" onclick="deleteRoute(${route.route_id})">🗑️</button>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+
+    // Update pagination
+    if (result.meta) {
+      document.getElementById('currentPage').textContent = result.meta.page;
+      document.getElementById('totalPages').textContent = result.meta.pages;
+    }
+  } catch (error) {
+    console.error('Error loading routes:', error);
+    document.getElementById('routesTable').innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px; color: var(--danger);">Error loading routes</td></tr>';
+  }
+}
+
+function previousPage() {
+  if (currentPage > 1) {
+    currentPage--;
+    loadRoutes();
+  }
+}
+
+function nextPage() {
+  const totalPages = parseInt(document.getElementById('totalPages').textContent);
+  if (currentPage < totalPages) {
+    currentPage++;
+    loadRoutes();
+  }
+}
+
+document.getElementById('searchInput').addEventListener('keyup', function() {
+  currentPage = 1;
+  loadRoutes();
+});
+
+document.getElementById('trainFilter').addEventListener('change', function() {
+  currentPage = 1;
+  loadRoutes();
+});
+
+document.addEventListener('DOMContentLoaded', async function() {
+  await loadTrainsForRouteForm();
+  await loadStationsForRouteForm();
+  await loadRoutes();
+});
+</script>
+
+{% endblock %}

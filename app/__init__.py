@@ -6,6 +6,8 @@ from flask import Flask
 from app.config import get_config
 from app.db import DatabaseConnection
 from app.services.error_handler import register_error_handlers
+from app.services.file_storage_service import FileStorageService
+from app.services.firebase_client import FirebaseClient
 
 
 def create_app():
@@ -21,6 +23,12 @@ def create_app():
     
     # Set database configuration for lazy initialization
     DatabaseConnection.set_config(config)
+    
+    # Initialize upload folders for file storage
+    try:
+        FileStorageService.init_upload_folder()
+    except Exception as e:
+        print(f"Warning: Failed to initialize upload folders: {e}")
     
     # Register blueprints (routes)
     register_blueprints(app)

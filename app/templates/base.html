@@ -38,6 +38,10 @@
          class="nav-item {% if request.endpoint == 'views.stations' %}active{% endif %}">
         <span class="nav-icon">🏛️</span> Stations
       </a>
+      <a href="{{ url_for('views.routes') }}"
+         class="nav-item {% if request.endpoint == 'views.routes' %}active{% endif %}">
+        <span class="nav-icon">🛤️</span> Routes
+      </a>
       <a href="{{ url_for('views.schedules') }}"
          class="nav-item {% if request.endpoint == 'views.schedules' %}active{% endif %}">
         <span class="nav-icon">🗓️</span> Schedules

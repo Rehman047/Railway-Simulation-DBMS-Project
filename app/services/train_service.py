@@ -102,7 +102,7 @@ class TrainService:
     @staticmethod
     def get_coaches(train_id):
         """Get all coaches for a train"""
-        return Database.fetch_all(GET_TRAIN_COACHES, (train_id,))
+        return Database.fetch_all(GET_TRAIN_WITH_COACHES, (train_id,))
     
     @staticmethod
     def get_amenities(train_id):
@@ -117,4 +117,4 @@ class TrainService:
     @staticmethod
     def get_occupancy(train_id, date):
         """Get occupancy information for a train on a specific date"""
-        return Database.fetch_all(GET_TRAIN_OCCUPANCY, (train_id, date))
+        return Database.fetch_all(GET_TRAIN_WITH_OCCUPANCY, (train_id, date))
