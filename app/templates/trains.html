@@ -269,25 +269,25 @@ function editTrain(trainId) {
     });
 }
 
-function deleteTrain(trainId) {
+async function deleteTrain(trainId) {
   if (!confirm('Are you sure you want to delete this train? This action cannot be undone.')) return;
   
-  fetch(`/api/trains/${trainId}`, {
-    method: 'DELETE'
-  })
-  .then(response => response.json())
-  .then(result => {
+  try {
+    const response = await fetch(`/api/trains/${trainId}`, {
+      method: 'DELETE'
+    });
+    const result = await response.json();
+    
     if (result.success) {
       alert('Train deleted successfully');
-      loadTrains();
+      await loadTrains();
     } else {
       alert('Error: ' + (result.error || 'Failed to delete train'));
     }
-  })
-  .catch(error => {
+  } catch (error) {
     console.error('Error:', error);
     alert('Failed to delete train: ' + error.message);
-  });
+  }
 }
 
 // Filter functionality

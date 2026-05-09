@@ -12,10 +12,7 @@
     <div class="filters">
       <input type="date" id="dateFilter" class="filter-input" placeholder="Filter by date">
       <select id="trainFilter" class="filter-select">
-        <option value="">All Trains</option>
-        <option value="EXP-001">Express 101</option>
-        <option value="INT-042">Intercity 42</option>
-        <option value="LOC-015">Local 15</option>
+        <option value="">Loading trains...</option>
       </select>
       <select id="statusFilter" class="filter-select">
         <option value="">All Status</option>
@@ -159,6 +156,25 @@ async function loadRoutesForScheduleForm() {
   }
 }
 
+async function loadTrainsForScheduleFilter() {
+  const select = document.getElementById('trainFilter');
+  try {
+    const res = await fetch('/api/trains?page=1&limit=200');
+    const result = await res.json();
+    select.innerHTML = '<option value="">All Trains</option>';
+    if (result.success && result.data) {
+      result.data.forEach((t) => {
+        const opt = document.createElement('option');
+        opt.value = t.train_number;
+        opt.textContent = `${t.train_name || ''} - ${t.train_number || ''}`;
+        select.appendChild(opt);
+      });
+    }
+  } catch (e) {
+    console.error('Error loading trains for filter:', e);
+  }
+}
+
 function showAddScheduleForm() {
   editingScheduleId = null;
   document.querySelector('#scheduleModal h2').textContent = 'Add New Schedule';
@@ -281,37 +297,49 @@ function statusClass(status) {
 }
 
 async function loadSchedules() {
-  const response = await fetch('/api/schedules?page=1&limit=50');
-  const result = await response.json();
-  if (!(result.success && result.data)) return;
+  try {
+    const response = await fetch('/api/schedules?page=1&limit=50');
+    const result = await response.json();
+    console.log('Schedules API response:', result);
+    
+    if (!(result.success && result.data)) {
+      console.warn('No schedules data received:', result);
+      document.getElementById('schedulesTable').innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px;">No schedules found or error loading data</td></tr>';
+      return;
+    }
 
-  const tbody = document.getElementById('schedulesTable');
-  tbody.innerHTML = '';
-  result.data.forEach((schedule) => {
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>#${schedule.schedule_id}</td>
-      <td>${schedule.train_name || ('Train ' + schedule.train_id)}</td>
-      <td>${schedule.source_station || 'N/A'} → ${schedule.destination_station || 'N/A'}</td>
-      <td>${schedule.departure_date || 'N/A'}</td>
-      <td>${schedule.departure_time || 'N/A'}</td>
-      <td>${schedule.arrival_time || 'N/A'}</td>
-      <td><span class="badge ${statusClass(schedule.schedule_status)}">${schedule.schedule_status || 'scheduled'}</span></td>
-      <td><span class="available-seats">${schedule.available_seats || '0'}</span></td>
-      <td>
-        <button class="btn-icon" title="Occupancy" onclick="getScheduleOccupancy(${schedule.schedule_id})">👁️</button>
-        <button class="btn-icon" title="Edit" onclick="editSchedule(${schedule.schedule_id})">✏️</button>
-        <button class="btn-icon" title="Cancel" onclick="cancelSchedule(${schedule.schedule_id})">❌</button>
-        <button class="btn-icon" title="Delete" onclick="deleteSchedule(${schedule.schedule_id})">🗑️</button>
-      </td>
-    `;
-    tbody.appendChild(row);
-  });
+    const tbody = document.getElementById('schedulesTable');
+    tbody.innerHTML = '';
+    result.data.forEach((schedule) => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>#${schedule.schedule_id}</td>
+        <td>${schedule.train_name || ('Train ' + schedule.train_id)}</td>
+        <td>${schedule.source_station || 'N/A'} → ${schedule.destination_station || 'N/A'}</td>
+        <td>${schedule.departure_date || 'N/A'}</td>
+        <td>${schedule.departure_time || 'N/A'}</td>
+        <td>${schedule.arrival_time || 'N/A'}</td>
+        <td><span class="badge ${statusClass(schedule.schedule_status)}">${schedule.schedule_status || 'scheduled'}</span></td>
+        <td><span class="available-seats">${schedule.available_seats || '0'}</span></td>
+        <td>
+          <button class="btn-icon" title="Occupancy" onclick="getScheduleOccupancy(${schedule.schedule_id})">👁️</button>
+          <button class="btn-icon" title="Edit" onclick="editSchedule(${schedule.schedule_id})">✏️</button>
+          <button class="btn-icon" title="Cancel" onclick="cancelSchedule(${schedule.schedule_id})">❌</button>
+          <button class="btn-icon" title="Delete" onclick="deleteSchedule(${schedule.schedule_id})">🗑️</button>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+  } catch (error) {
+    console.error('Error loading schedules:', error);
+    document.getElementById('schedulesTable').innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px; color: red;">Error loading schedules</td></tr>';
+  }
 }
 
 document.addEventListener('DOMContentLoaded', async function() {
   await loadSchedules();
   await loadTrainsForScheduleForm();
+  await loadTrainsForScheduleFilter();
   await loadRoutesForScheduleForm();
 });
 

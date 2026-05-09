@@ -100,6 +100,33 @@ def stations():
     return render_template('stations.html', stations=stations_list)
 
 
+# ── Routes ───────────────────────────────────────────────────────
+
+@views_bp.route('/routes')
+def routes():
+    """List all routes with train and station info."""
+    routes_list = Database.fetch_all("""
+        SELECT r.route_id,
+               r.train_id,
+               r.distance,
+               r.estimated_duration,
+               r.created_at,
+               t.train_name, t.train_number, t.train_type,
+               st_src.station_id AS source_station_id,
+               st_src.station_name AS source_station,
+               st_src.city AS source_city,
+               st_dst.station_id AS destination_station_id,
+               st_dst.station_name AS destination_station,
+               st_dst.city AS destination_city
+        FROM routes r
+        JOIN trains t ON r.train_id = t.train_id
+        JOIN stations st_src ON r.source_station_id = st_src.station_id
+        JOIN stations st_dst ON r.destination_station_id = st_dst.station_id
+        ORDER BY r.route_id
+    """)
+    return render_template('routes.html', routes=routes_list)
+
+
 # ── Schedules ────────────────────────────────────────────────────
 
 @views_bp.route('/schedules')

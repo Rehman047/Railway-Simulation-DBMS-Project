@@ -128,6 +128,22 @@ def update_train(train_id: int):
     return jsonify({'success': False, 'error': 'No changes made'}), 400
 
 
+# ── Delete ────────────────────────────────────────────────────
+
+@trains_bp.route('/<int:train_id>', methods=['DELETE'])
+def delete_train(train_id: int):
+    """Delete a train."""
+    train = Database.fetch_one(GET_TRAIN, (train_id,))
+    if not train:
+        return jsonify({'success': False, 'error': 'Train not found'}), 404
+
+    try:
+        Database.execute("DELETE FROM trains WHERE train_id = %s", (train_id,))
+        return jsonify({'success': True, 'message': 'Train deleted successfully'}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # ── Sub-resources ─────────────────────────────────────────────
 
 @trains_bp.route('/<int:train_id>/coaches', methods=['GET'])

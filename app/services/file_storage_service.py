@@ -59,7 +59,10 @@ class FileStorageService:
             Save status and file path
         """
         try:
-            if file_obj.size > FileStorageService.MAX_FILE_SIZE:
+            # Check file size by reading content
+            content = file_obj.read()
+            file_obj.seek(0)  # Reset pointer for later save
+            if len(content) > FileStorageService.MAX_FILE_SIZE:
                 return {
                     'success': False,
                     'error': 'File size exceeds 5MB limit'
@@ -107,7 +110,10 @@ class FileStorageService:
     def save_train_image(train_id, file_obj):
         """Save train image"""
         try:
-            if file_obj.size > FileStorageService.MAX_FILE_SIZE:
+            # Check file size by reading content
+            content = file_obj.read()
+            file_obj.seek(0)  # Reset pointer for later save
+            if len(content) > FileStorageService.MAX_FILE_SIZE:
                 return {
                     'success': False,
                     'error': 'File size exceeds 5MB limit'
@@ -151,7 +157,10 @@ class FileStorageService:
     def save_station_image(station_id, file_obj):
         """Save station image"""
         try:
-            if file_obj.size > FileStorageService.MAX_FILE_SIZE:
+            # Check file size by reading content
+            content = file_obj.read()
+            file_obj.seek(0)  # Reset pointer for later save
+            if len(content) > FileStorageService.MAX_FILE_SIZE:
                 return {
                     'success': False,
                     'error': 'File size exceeds 5MB limit'

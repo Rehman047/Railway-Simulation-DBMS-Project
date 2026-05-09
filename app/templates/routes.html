@@ -255,23 +255,23 @@ function editRoute(routeId) {
     .catch(error => console.error('Error:', error));
 }
 
-function deleteRoute(routeId) {
+async function deleteRoute(routeId) {
   if (!confirm(`Delete route #${routeId}? This action cannot be undone.`)) return;
   
-  fetch(`/api/routes/${routeId}`, { method: 'DELETE' })
-    .then(response => response.json())
-    .then(result => {
-      if (result.success) {
-        alert('Route deleted successfully');
-        loadRoutes();
-      } else {
-        alert('Error: ' + (result.error || 'Failed to delete route'));
-      }
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      alert('Failed to delete route: ' + error.message);
-    });
+  try {
+    const response = await fetch(`/api/routes/${routeId}`, { method: 'DELETE' });
+    const result = await response.json();
+    
+    if (result.success) {
+      alert('Route deleted successfully');
+      await loadRoutes();
+    } else {
+      alert('Error: ' + (result.error || 'Failed to delete route'));
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Failed to delete route: ' + error.message);
+  }
 }
 
 async function loadRoutes() {

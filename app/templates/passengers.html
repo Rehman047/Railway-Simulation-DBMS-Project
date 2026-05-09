@@ -266,25 +266,25 @@ function editPassenger(passengerId) {
     });
 }
 
-function deletePassenger(passengerId) {
+async function deletePassenger(passengerId) {
   if (!confirm('Are you sure you want to delete this passenger? This action cannot be undone.')) return;
   
-  fetch(`/api/passengers/${passengerId}`, {
-    method: 'DELETE'
-  })
-  .then(response => response.json())
-  .then(result => {
+  try {
+    const response = await fetch(`/api/passengers/${passengerId}`, {
+      method: 'DELETE'
+    });
+    const result = await response.json();
+    
     if (result.success) {
       alert('Passenger deleted successfully');
-      loadPassengers();
+      await loadPassengers();
     } else {
       alert('Error: ' + (result.error || 'Failed to delete passenger'));
     }
-  })
-  .catch(error => {
+  } catch (error) {
     console.error('Error:', error);
     alert('Failed to delete passenger: ' + error.message);
-  });
+  }
 }
 
 function loadPassengers() {
