@@ -2,12 +2,92 @@
 Flask Application Factory
 Initializes the Flask app with configuration and routes
 """
+import os
 from flask import Flask
 from app.config import get_config
 from app.db import DatabaseConnection
 from app.services.error_handler import register_error_handlers
 from app.services.file_storage_service import FileStorageService
 from app.services.firebase_client import FirebaseClient
+
+# Absolute path to the /database folder at project root
+_DB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'database')
+
+
+def _split_sql(sql: str):
+    """
+    Split a SQL file into individual statements.
+    Respects PostgreSQL $$ dollar-quoting so PL/pgSQL
+    function bodies are not broken on inner semicolons.
+    """
+    statements = []
+    current = []
+    in_dollar_quote = False
+
+    for line in sql.splitlines():
+        stripped = line.strip()
+        # A line comment outside a dollar-quoted block: skip accumulation
+        if stripped.startswith('--') and not in_dollar_quote:
+            current.append(line)
+            continue
+        # Toggle dollar-quote state for each $$ occurrence on this line
+        if '$$' in stripped:
+            if stripped.count('$$') % 2 == 1:
+                in_dollar_quote = not in_dollar_quote
+        current.append(line)
+        # A semicolon outside a dollar-quoted block ends the statement
+        if not in_dollar_quote and stripped.endswith(';'):
+            stmt = '\n'.join(current).strip()
+            if stmt and stmt != ';':
+                statements.append(stmt)
+            current = []
+
+    # Flush any trailing content
+    remaining = '\n'.join(current).strip()
+    if remaining and remaining != ';':
+        statements.append(remaining)
+    return statements
+
+
+def _apply_startup_sql(filepath: str) -> None:
+    """
+    Execute a SQL file against the database at application startup.
+    Failures are logged as warnings and never crash the server.
+    """
+    if not os.path.exists(filepath):
+        print(f"[SQL] Skipping (not found): {filepath}")
+        return
+
+    try:
+        # Force pool initialisation so get_connection() works
+        DatabaseConnection.init_pool()
+        conn = DatabaseConnection.get_connection()
+    except Exception as e:
+        print(f"[SQL] Cannot connect to DB — skipping {os.path.basename(filepath)}: {e}")
+        return
+
+    try:
+        conn.autocommit = True          # DDL statements don't need an explicit transaction
+        with open(filepath, 'r', encoding='utf-8') as fh:
+            sql = fh.read()
+        statements = _split_sql(sql)
+        executed = 0
+        with conn.cursor() as cur:
+            for stmt in statements:
+                clean = stmt.strip()
+                if not clean or clean.startswith('--'):
+                    continue
+                try:
+                    cur.execute(clean)
+                    executed += 1
+                except Exception as stmt_err:
+                    print(f"[SQL] Warning — statement skipped: {stmt_err}")
+        print(f"[SQL] ✓ Applied '{os.path.basename(filepath)}' ({executed} statements)")
+    except Exception as e:
+        print(f"[SQL] Error applying {os.path.basename(filepath)}: {e}")
+    finally:
+        conn.autocommit = False
+        DatabaseConnection.return_connection(conn)
 
 
 def create_app():
@@ -23,7 +103,10 @@ def create_app():
     
     # Set database configuration for lazy initialization
     DatabaseConnection.set_config(config)
-    
+
+    # Apply backup triggers on every startup
+    _apply_startup_sql(os.path.join(_DB_DIR, 'railway_backup_triggers.sql'))
+
     # Initialize upload folders for file storage
     try:
         FileStorageService.init_upload_folder()
