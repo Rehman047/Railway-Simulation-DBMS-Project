@@ -22,7 +22,7 @@ class AnalyticsService:
                LEFT JOIN bookings b ON s.schedule_id = b.schedule_id
                LEFT JOIN payments p ON b.booking_id = p.booking_id
                WHERE p.payment_date BETWEEN %s AND %s
-               AND p.status = 'Completed'
+               AND LOWER(p.payment_status) = 'completed'
                GROUP BY t.train_id, t.train_name, t.train_number
                ORDER BY revenue DESC""",
             (from_date, to_date)
@@ -46,7 +46,7 @@ class AnalyticsService:
                LEFT JOIN bookings b ON s.schedule_id = b.schedule_id
                LEFT JOIN payments p ON b.booking_id = p.booking_id
                WHERE p.payment_date BETWEEN %s AND %s
-               AND p.status = 'Completed'
+               AND LOWER(p.payment_status) = 'completed'
                GROUP BY r.route_id, st_src.station_name, st_dst.station_name
                ORDER BY revenue DESC""",
             (from_date, to_date)
@@ -61,14 +61,14 @@ class AnalyticsService:
             data = Database.fetch_all(
                 """SELECT s.schedule_id, s.departure_date,
                           COUNT(b.booking_id) as booked_seats,
-                          t.total_capacity as total_seats,
-                          ROUND(COUNT(b.booking_id) * 100.0 / t.total_capacity, 2) as occupancy_percent
+                          t.capacity as total_seats,
+                          ROUND(COUNT(b.booking_id) * 100.0 / NULLIF(t.capacity, 0), 2) as occupancy_percent
                    FROM schedules s
                    JOIN trains t ON s.train_id = t.train_id
-                   LEFT JOIN bookings b ON s.schedule_id = b.schedule_id AND b.booking_status != 'Cancelled'
+                   LEFT JOIN bookings b ON s.schedule_id = b.schedule_id AND LOWER(b.booking_status) != 'cancelled'
                    WHERE t.train_id = %s
                    AND s.departure_date BETWEEN %s AND %s
-                   GROUP BY s.schedule_id, s.departure_date, t.total_capacity
+                   GROUP BY s.schedule_id, s.departure_date, t.capacity
                    ORDER BY s.departure_date DESC""",
                 (train_id, from_date, to_date)
             )
@@ -76,12 +76,12 @@ class AnalyticsService:
             data = Database.fetch_all(
                 """SELECT s.schedule_id, s.departure_date,
                           COUNT(b.booking_id) as booked_seats,
-                          t.total_capacity as total_seats,
-                          ROUND(COUNT(b.booking_id) * 100.0 / t.total_capacity, 2) as occupancy_percent
+                          t.capacity as total_seats,
+                          ROUND(COUNT(b.booking_id) * 100.0 / NULLIF(t.capacity, 0), 2) as occupancy_percent
                    FROM schedules s
                    JOIN trains t ON s.train_id = t.train_id
-                   LEFT JOIN bookings b ON s.schedule_id = b.schedule_id AND b.booking_status != 'Cancelled'
-                   GROUP BY s.schedule_id, s.departure_date, t.total_capacity
+                   LEFT JOIN bookings b ON s.schedule_id = b.schedule_id AND LOWER(b.booking_status) != 'cancelled'
+                   GROUP BY s.schedule_id, s.departure_date, t.capacity
                    ORDER BY s.departure_date DESC
                    LIMIT 100"""
             )
@@ -112,8 +112,8 @@ class AnalyticsService:
         """Get cancellation statistics"""
         stats = Database.fetch_one(
             """SELECT COUNT(*) as total_cancellations,
-                      COUNT(CASE WHEN status = 'Refunded' THEN 1 END) as refunded_count,
-                      SUM(CASE WHEN status = 'Refunded' THEN 1 ELSE 0 END) * 1.0 / COUNT(*) * 100 as refund_rate,
+                      COUNT(CASE WHEN LOWER(refund_status) = 'refunded' THEN 1 END) as refunded_count,
+                      SUM(CASE WHEN LOWER(refund_status) = 'refunded' THEN 1 ELSE 0 END) * 1.0 / NULLIF(COUNT(*), 0) * 100 as refund_rate,
                       (SELECT COUNT(*) FROM bookings WHERE booking_date BETWEEN %s AND %s) as total_bookings
                FROM cancellations
                WHERE cancellation_date BETWEEN %s AND %s""",
@@ -173,7 +173,7 @@ class AnalyticsService:
         performance = Database.fetch_all(
             """SELECT s.staff_id, s.first_name, s.last_name, s.position,
                       COUNT(c.cancellation_id) as cancellations_handled,
-                      SUM(CASE WHEN c.status = 'Refunded' THEN 1 ELSE 0 END) as refunds_processed
+                      SUM(CASE WHEN LOWER(c.refund_status) = 'refunded' THEN 1 ELSE 0 END) as refunds_processed
                FROM staff s
                LEFT JOIN cancellations c ON s.staff_id = c.cancelled_by_staff_id
                AND c.cancellation_date BETWEEN %s AND %s
@@ -191,19 +191,19 @@ class AnalyticsService:
             'total_passengers': Database.fetch_scalar("SELECT COUNT(*) FROM passengers"),
             'total_bookings': Database.fetch_scalar("SELECT COUNT(*) FROM bookings"),
             'confirmed_bookings': Database.fetch_scalar(
-                "SELECT COUNT(*) FROM bookings WHERE booking_status = 'Confirmed'"
+                "SELECT COUNT(*) FROM bookings WHERE LOWER(booking_status) = 'confirmed'"
             ),
             'cancelled_bookings': Database.fetch_scalar(
-                "SELECT COUNT(*) FROM bookings WHERE booking_status = 'Cancelled'"
+                "SELECT COUNT(*) FROM bookings WHERE LOWER(booking_status) = 'cancelled'"
             ),
             'total_revenue': Database.fetch_scalar(
-                "SELECT COALESCE(SUM(payment_amount), 0) FROM payments WHERE status = 'Completed'"
+                "SELECT COALESCE(SUM(payment_amount), 0) FROM payments WHERE LOWER(payment_status) = 'completed'"
             ),
             'pending_payments': Database.fetch_scalar(
-                "SELECT COUNT(*) FROM bookings WHERE booking_status = 'Pending'"
+                "SELECT COUNT(*) FROM bookings WHERE LOWER(booking_status) = 'pending'"
             ),
             'active_schedules': Database.fetch_scalar(
-                "SELECT COUNT(*) FROM schedules WHERE status = 'Active'"
+                "SELECT COUNT(*) FROM schedules WHERE LOWER(schedule_status) IN ('active', 'scheduled')"
             ),
             'total_trains': Database.fetch_scalar("SELECT COUNT(*) FROM trains"),
             'total_stations': Database.fetch_scalar("SELECT COUNT(*) FROM stations")

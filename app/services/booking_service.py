@@ -129,8 +129,8 @@ class BookingService:
                 
                 # 3. Create cancellation record
                 cursor.execute(
-                    "INSERT INTO cancellations (booking_id, cancelled_by_staff_id, cancellation_date, reason, status) VALUES (%s, %s, %s, %s, %s) RETURNING cancellation_id",
-                    (booking_id, staff_id, datetime.now().date(), reason, 'Processed')
+                    "INSERT INTO cancellations (booking_id, cancelled_by_staff_id, cancellation_date, cancellation_reason, refund_status) VALUES (%s, %s, %s, %s, %s) RETURNING cancellation_id",
+                    (booking_id, staff_id, datetime.now().date(), reason, 'processed')
                 )
                 cancellation_id = cursor.fetchone()[0]
                 

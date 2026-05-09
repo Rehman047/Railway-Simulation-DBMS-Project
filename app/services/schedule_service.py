@@ -84,7 +84,7 @@ class ScheduleService:
             if departure_time and arrival_time:
                 affected = Database.execute(
                     UPDATE_SCHEDULE,
-                    (departure_time, arrival_time, 'Active', schedule_id)
+                    (departure_time, arrival_time, 'scheduled', schedule_id)
                 )
                 
                 if affected > 0:
@@ -124,15 +124,19 @@ class ScheduleService:
         Get count of available seats for a schedule
         """
         result = Database.fetch_one(
-            """SELECT 
-                (SELECT total_seats FROM coaches 
-                 WHERE coach_id IN (SELECT coach_id FROM coaches 
-                                   WHERE train_id = (SELECT train_id FROM schedules WHERE schedule_id = %s)))
-                -
-                (SELECT COUNT(*) FROM bookings WHERE schedule_id = %s AND booking_status != 'cancelled')
-                as available_seats
-            """,
-            (schedule_id, schedule_id)
+            """SELECT
+                   t.capacity
+                   - COALESCE(
+                       (SELECT COUNT(*)
+                        FROM bookings b
+                        WHERE b.schedule_id = s.schedule_id
+                          AND LOWER(b.booking_status) != 'cancelled'),
+                       0
+                     ) AS available_seats
+               FROM schedules s
+               JOIN trains t ON s.train_id = t.train_id
+               WHERE s.schedule_id = %s""",
+            (schedule_id,)
         )
         
         return result['available_seats'] if result else 0
@@ -165,14 +169,14 @@ class ScheduleService:
                     # Create cancellation record
                     cursor.execute(
                         """INSERT INTO cancellations 
-                        (booking_id, cancellation_date, reason, status) 
-                        VALUES (%s, %s, %s, 'Processed')""",
+                        (booking_id, cancellation_date, cancellation_reason, refund_status) 
+                        VALUES (%s, %s, %s, 'processed')""",
                         (booking_id, datetime.now().date(), reason)
                     )
                 
                 # 3. Update schedule status
                 cursor.execute(
-                    "UPDATE schedules SET schedule_status = 'Cancelled' WHERE schedule_id = %s",
+                    "UPDATE schedules SET schedule_status = 'cancelled' WHERE schedule_id = %s",
                     (schedule_id,)
                 )
                 
@@ -190,12 +194,12 @@ class ScheduleService:
         """Get full schedule details with train and route info"""
         return Database.fetch_one(
             """SELECT s.schedule_id, s.departure_date, s.departure_time, s.arrival_time, s.schedule_status,
-                      t.train_id, t.train_name, t.train_number, t.train_type, t.total_capacity,
-                      r.route_id, r.distance_km, r.estimated_duration_hours,
+                      t.train_id, t.train_name, t.train_number, t.train_type, t.capacity,
+                      r.route_id, r.distance, r.estimated_duration,
                       st_src.station_id as source_station_id, st_src.station_name as source_station,
                       st_dst.station_id as destination_station_id, st_dst.station_name as destination_station,
                       (SELECT COUNT(*) FROM bookings WHERE schedule_id = %s AND booking_status != 'cancelled') as booked_seats,
-                      t.total_capacity - (SELECT COUNT(*) FROM bookings WHERE schedule_id = %s AND booking_status != 'cancelled') as available_seats
+                      t.capacity - (SELECT COUNT(*) FROM bookings WHERE schedule_id = %s AND booking_status != 'cancelled') as available_seats
                FROM schedules s
                JOIN trains t ON s.train_id = t.train_id
                JOIN routes r ON s.route_id = r.route_id
