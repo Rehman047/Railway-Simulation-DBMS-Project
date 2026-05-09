@@ -45,51 +45,7 @@
         </tr>
       </thead>
       <tbody id="schedulesTable">
-        <tr>
-          <td>#101</td>
-          <td>Express 101</td>
-          <td>Delhi → Mumbai</td>
-          <td>2024-01-20</td>
-          <td>08:00 AM</td>
-          <td>04:00 PM</td>
-          <td><span class="badge badge-success">Scheduled</span></td>
-          <td><span class="available-seats">180</span></td>
-          <td>
-            <button class="btn-icon" title="View details">👁️</button>
-            <button class="btn-icon" title="Edit">✏️</button>
-            <button class="btn-icon" title="Seats">💺</button>
-          </td>
-        </tr>
-        <tr>
-          <td>#102</td>
-          <td>Intercity 42</td>
-          <td>Mumbai → Pune</td>
-          <td>2024-01-20</td>
-          <td>10:30 AM</td>
-          <td>02:30 PM</td>
-          <td><span class="badge badge-info">Running</span></td>
-          <td><span class="available-seats">120</span></td>
-          <td>
-            <button class="btn-icon" title="View details">👁️</button>
-            <button class="btn-icon" title="Edit">✏️</button>
-            <button class="btn-icon" title="Seats">💺</button>
-          </td>
-        </tr>
-        <tr>
-          <td>#103</td>
-          <td>Local 15</td>
-          <td>Bangalore → Chennai</td>
-          <td>2024-01-19</td>
-          <td>06:00 PM</td>
-          <td>11:00 PM</td>
-          <td><span class="badge badge-secondary">Completed</span></td>
-          <td><span class="available-seats">0</span></td>
-          <td>
-            <button class="btn-icon" title="View details">👁️</button>
-            <button class="btn-icon" title="Edit">✏️</button>
-            <button class="btn-icon" title="Seats">💺</button>
-          </td>
-        </tr>
+        <!-- Schedules will be loaded here dynamically -->
       </tbody>
     </table>
   </div>
@@ -113,20 +69,14 @@
       <div class="form-row">
         <div class="form-group">
           <label>Train *</label>
-          <select name="train_id" required>
-            <option value="">Select Train</option>
-            <option value="1">Express 101</option>
-            <option value="2">Intercity 42</option>
-            <option value="3">Local 15</option>
+          <select name="train_id" id="scheduleTrainSelect" required>
+            <option value="">Loading trains...</option>
           </select>
         </div>
         <div class="form-group">
           <label>Route *</label>
-          <select name="route_id" required>
-            <option value="">Select Route</option>
-            <option value="1">Delhi → Mumbai</option>
-            <option value="2">Mumbai → Pune</option>
-            <option value="3">Bangalore → Chennai</option>
+          <select name="route_id" id="scheduleRouteSelect" required>
+            <option value="">Loading routes...</option>
           </select>
         </div>
       </div>
@@ -169,6 +119,46 @@
 <script>
 let editingScheduleId = null;
 
+async function loadTrainsForScheduleForm() {
+  const select = document.getElementById('scheduleTrainSelect');
+  try {
+    const res = await fetch('/api/trains?page=1&limit=200');
+    const result = await res.json();
+    select.innerHTML = '<option value="">Select Train</option>';
+    if (result.success && result.data) {
+      result.data.forEach((t) => {
+        const opt = document.createElement('option');
+        opt.value = t.train_id;
+        opt.textContent = `${t.train_name || ''} - ${t.train_number || ''} (${t.capacity} seats)`;
+        select.appendChild(opt);
+      });
+    }
+  } catch (e) {
+    console.error('Error loading trains:', e);
+    select.innerHTML = '<option value="">Error loading trains</option>';
+  }
+}
+
+async function loadRoutesForScheduleForm() {
+  const select = document.getElementById('scheduleRouteSelect');
+  try {
+    const res = await fetch('/api/routes?page=1&limit=200');
+    const result = await res.json();
+    select.innerHTML = '<option value="">Select Route</option>';
+    if (result.success && result.data) {
+      result.data.forEach((r) => {
+        const opt = document.createElement('option');
+        opt.value = r.route_id;
+        opt.textContent = `${r.source_station || ''} → ${r.destination_station || ''} (${r.distance || ''} km)`;
+        select.appendChild(opt);
+      });
+    }
+  } catch (e) {
+    console.error('Error loading routes:', e);
+    select.innerHTML = '<option value="">Error loading routes</option>';
+  }
+}
+
 function showAddScheduleForm() {
   editingScheduleId = null;
   document.querySelector('#scheduleModal h2').textContent = 'Add New Schedule';
@@ -204,6 +194,10 @@ async function editSchedule(scheduleId) {
   document.querySelector('#scheduleForm .btn-primary').textContent = 'Update Schedule';
   document.getElementById('scheduleModal').style.display = 'flex';
 
+  // Load dropdowns first, then set values
+  await loadTrainsForScheduleForm();
+  await loadRoutesForScheduleForm();
+  
   document.querySelector('#scheduleForm select[name="train_id"]').value = s.train_id;
   document.querySelector('#scheduleForm select[name="route_id"]').value = s.route_id;
   document.querySelector('#scheduleForm input[name="departure_date"]').value = s.departure_date;
@@ -315,8 +309,10 @@ async function loadSchedules() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-  loadSchedules();
+document.addEventListener('DOMContentLoaded', async function() {
+  await loadSchedules();
+  await loadTrainsForScheduleForm();
+  await loadRoutesForScheduleForm();
 });
 
 function filterSchedules() {

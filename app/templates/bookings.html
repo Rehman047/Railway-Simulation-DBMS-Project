@@ -40,54 +40,7 @@
         </tr>
       </thead>
       <tbody id="bookingsTable">
-        <tr>
-          <td>#BK-001</td>
-          <td>John Doe</td>
-          <td>Express 101</td>
-          <td>Delhi → Mumbai</td>
-          <td>A-12</td>
-          <td>2024-01-20 08:00 AM</td>
-          <td>₹2,500</td>
-          <td><span class="badge badge-success">Confirmed</span></td>
-          <td><span class="badge badge-info">Completed</span></td>
-          <td>
-            <button class="btn-icon" title="View details">👁️</button>
-            <button class="btn-icon" title="Edit">✏️</button>
-            <button class="btn-icon" title="Cancel">❌</button>
-          </td>
-        </tr>
-        <tr>
-          <td>#BK-002</td>
-          <td>Jane Smith</td>
-          <td>Intercity 42</td>
-          <td>Mumbai → Pune</td>
-          <td>B-24</td>
-          <td>2024-01-21 10:30 AM</td>
-          <td>₹1,800</td>
-          <td><span class="badge badge-warning">Pending</span></td>
-          <td><span class="badge badge-warning">Pending</span></td>
-          <td>
-            <button class="btn-icon" title="View details">👁️</button>
-            <button class="btn-icon" title="Edit">✏️</button>
-            <button class="btn-icon" title="Cancel">❌</button>
-          </td>
-        </tr>
-        <tr>
-          <td>#BK-003</td>
-          <td>Bob Johnson</td>
-          <td>Local 15</td>
-          <td>Bangalore → Chennai</td>
-          <td>C-05</td>
-          <td>2024-01-22 06:00 PM</td>
-          <td>₹900</td>
-          <td><span class="badge badge-danger">Cancelled</span></td>
-          <td><span class="badge badge-success">Refunded</span></td>
-          <td>
-            <button class="btn-icon" title="View details">👁️</button>
-            <button class="btn-icon" title="Edit">✏️</button>
-            <button class="btn-icon" title="Cancel">❌</button>
-          </td>
-        </tr>
+        <!-- Bookings will be loaded here dynamically -->
       </tbody>
     </table>
   </div>
@@ -111,20 +64,14 @@
       <div class="form-row">
         <div class="form-group">
           <label>Passenger *</label>
-          <select name="passenger_id" required>
-            <option value="">Select Passenger</option>
-            <option value="1">John Doe</option>
-            <option value="2">Jane Smith</option>
-            <option value="3">Bob Johnson</option>
+          <select name="passenger_id" id="bookingPassengerSelect" required>
+            <option value="">Loading passengers...</option>
           </select>
         </div>
         <div class="form-group">
           <label>Schedule *</label>
-          <select name="schedule_id" required>
-            <option value="">Select Schedule</option>
-            <option value="101">Express 101 - 2024-01-20 08:00 AM</option>
-            <option value="102">Intercity 42 - 2024-01-21 10:30 AM</option>
-            <option value="103">Local 15 - 2024-01-22 06:00 PM</option>
+          <select name="schedule_id" id="bookingScheduleSelect" required>
+            <option value="">Loading schedules...</option>
           </select>
         </div>
       </div>
@@ -132,12 +79,8 @@
       <div class="form-row">
         <div class="form-group">
           <label>Seat *</label>
-          <select name="seat_id" required>
+          <select name="seat_id" id="bookingSeatSelect" required>
             <option value="">Select Seat</option>
-            <option value="1">A-01</option>
-            <option value="2">A-02</option>
-            <option value="3">B-01</option>
-            <option value="4">B-02</option>
           </select>
         </div>
         <div class="form-group">
@@ -183,7 +126,7 @@ function closeBookingModal() {
 async function loadPassengersForDropdown() {
   const res = await fetch('/api/passengers?page=1&limit=200');
   const result = await res.json();
-  const select = document.querySelector('#bookingForm select[name="passenger_id"]');
+  const select = document.querySelector('#bookingPassengerSelect');
   select.innerHTML = '<option value="">Select Passenger</option>';
 
   if (result.success && result.data) {
@@ -199,7 +142,7 @@ async function loadPassengersForDropdown() {
 async function loadSchedulesForDropdown() {
   const res = await fetch('/api/schedules?page=1&limit=200');
   const result = await res.json();
-  const select = document.querySelector('#bookingForm select[name="schedule_id"]');
+  const select = document.querySelector('#bookingScheduleSelect');
   select.innerHTML = '<option value="">Select Schedule</option>';
 
   if (result.success && result.data) {
@@ -215,7 +158,7 @@ async function loadSchedulesForDropdown() {
 }
 
 async function loadAvailableSeats(scheduleId, selectedSeatId = null) {
-  const seatSelect = document.querySelector('#bookingForm select[name="seat_id"]');
+  const seatSelect = document.querySelector('#bookingSeatSelect');
   seatSelect.innerHTML = '<option value="">Select Seat</option>';
   if (!scheduleId) return;
 
@@ -234,7 +177,7 @@ async function loadAvailableSeats(scheduleId, selectedSeatId = null) {
   }
 }
 
-document.querySelector('#bookingForm select[name="schedule_id"]').addEventListener('change', async function() {
+document.querySelector('#bookingScheduleSelect').addEventListener('change', async function() {
   await loadAvailableSeats(this.value);
 });
 
@@ -342,8 +285,8 @@ async function editBooking(bookingId) {
   await loadPassengersForDropdown();
   await loadSchedulesForDropdown();
 
-  document.querySelector('#bookingForm select[name="passenger_id"]').value = booking.passenger_id;
-  document.querySelector('#bookingForm select[name="schedule_id"]').value = booking.schedule_id;
+  document.querySelector('#bookingPassengerSelect').value = booking.passenger_id;
+  document.querySelector('#bookingScheduleSelect').value = booking.schedule_id;
   await loadAvailableSeats(booking.schedule_id, booking.seat_id);
   document.querySelector('#bookingForm input[name="fare_amount"]').value = booking.fare_amount;
 }

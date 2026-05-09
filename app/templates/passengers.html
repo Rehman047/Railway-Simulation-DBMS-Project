@@ -32,48 +32,7 @@
         </tr>
       </thead>
       <tbody id="passengersTable">
-        <tr>
-          <td>#1</td>
-          <td>John Doe</td>
-          <td>john@example.com</td>
-          <td>9876543210</td>
-          <td>28</td>
-          <td>CNIC: 12345-1234567-1</td>
-          <td>5</td>
-          <td>
-            <button class="btn-icon" title="View details">👁️</button>
-            <button class="btn-icon" title="Edit">✏️</button>
-            <button class="btn-icon" title="Delete">🗑️</button>
-          </td>
-        </tr>
-        <tr>
-          <td>#2</td>
-          <td>Jane Smith</td>
-          <td>jane@example.com</td>
-          <td>8765432109</td>
-          <td>32</td>
-          <td>Passport: AB123456</td>
-          <td>8</td>
-          <td>
-            <button class="btn-icon" title="View details">👁️</button>
-            <button class="btn-icon" title="Edit">✏️</button>
-            <button class="btn-icon" title="Delete">🗑️</button>
-          </td>
-        </tr>
-        <tr>
-          <td>#3</td>
-          <td>Bob Johnson</td>
-          <td>bob@example.com</td>
-          <td>7654321098</td>
-          <td>45</td>
-          <td>CNIC: 54321-7654321-9</td>
-          <td>3</td>
-          <td>
-            <button class="btn-icon" title="View details">👁️</button>
-            <button class="btn-icon" title="Edit">✏️</button>
-            <button class="btn-icon" title="Delete">🗑️</button>
-          </td>
-        </tr>
+        <!-- Data will be loaded dynamically -->
       </tbody>
     </table>
   </div>
@@ -139,6 +98,16 @@
         </div>
       </div>
 
+      <div class="form-row">
+        <div class="form-group full-width">
+          <label>Profile Photo</label>
+          <div class="photo-upload-container">
+            <input type="file" id="passengerPhotoInput" accept="image/*" onchange="previewPassengerPhoto(this)">
+            <div id="passengerPhotoPreview" class="photo-preview"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="form-actions">
         <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
         <button type="submit" class="btn btn-primary">Add Passenger</button>
@@ -148,12 +117,52 @@
 </div>
 
 <script>
+let editingPassengerId = null;
+
 function showAddPassengerForm() {
+  editingPassengerId = null;
   document.getElementById('passengerModal').style.display = 'flex';
+  document.querySelector('#passengerModal h2').textContent = 'Add New Passenger';
+  document.querySelector('#passengerForm .btn-primary').textContent = 'Add Passenger';
+  document.getElementById('passengerForm').reset();
+  document.getElementById('passengerPhotoPreview').innerHTML = '';
 }
 
 function closeModal() {
   document.getElementById('passengerModal').style.display = 'none';
+  editingPassengerId = null;
+}
+
+function previewPassengerPhoto(input) {
+  const preview = document.getElementById('passengerPhotoPreview');
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      preview.innerHTML = `<img src="${e.target.result}" alt="Photo preview" style="max-width: 200px; max-height: 200px;">`;
+    };
+    reader.readAsDataURL(input.files[0]);
+  } else {
+    preview.innerHTML = '';
+  }
+}
+
+async function uploadPassengerPhoto(passengerId, file) {
+  if (!file) return { success: true };
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  try {
+    const response = await fetch(`/api/storage/upload/passenger/${passengerId}`, {
+      method: 'POST',
+      body: formData
+    });
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Photo upload error:', error);
+    return { success: false, error: 'Failed to upload photo' };
+  }
 }
 
 document.getElementById('passengerForm').addEventListener('submit', function(e) {
@@ -170,20 +179,35 @@ document.getElementById('passengerForm').addEventListener('submit', function(e) 
     id_proof_number: formData.get('id_proof_number')
   };
   
-  fetch('/api/passengers', {
-    method: 'POST',
+  const endpoint = editingPassengerId ? `/api/passengers/${editingPassengerId}` : '/api/passengers';
+  const method = editingPassengerId ? 'PUT' : 'POST';
+  
+  fetch(endpoint, {
+    method: method,
     headers: {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(data)
   })
   .then(response => response.json())
-  .then(result => {
+  .then(async result => {
     if (result.success) {
-      alert('Passenger added successfully! ID: ' + result.passenger_id);
+      const passengerId = editingPassengerId || result.passenger_id;
+      const photoFile = document.getElementById('passengerPhotoInput').files[0];
+      
+      if (photoFile) {
+        const photoResult = await uploadPassengerPhoto(passengerId, photoFile);
+        if (!photoResult.success) {
+          alert('Passenger saved but photo upload failed: ' + photoResult.error);
+        }
+      }
+      
+      const msg = editingPassengerId ? 'Passenger updated successfully' : 'Passenger added successfully! ID: ' + result.passenger_id;
+      alert(msg);
       closeModal();
       document.getElementById('passengerForm').reset();
-      // Refresh passengers table
+      document.getElementById('passengerPhotoPreview').innerHTML = '';
+      editingPassengerId = null;
       loadPassengers();
     } else {
       alert('Error: ' + (result.error || result.errors?.join(', ') || 'Unknown error'));
@@ -191,12 +215,80 @@ document.getElementById('passengerForm').addEventListener('submit', function(e) 
   })
   .catch(error => {
     console.error('Error:', error);
-    alert('Failed to add passenger: ' + error.message);
+    alert('Failed to save passenger: ' + error.message);
   });
 });
 
+function viewPassenger(passengerId) {
+  fetch(`/api/passengers/${passengerId}`)
+    .then(response => response.json())
+    .then(result => {
+      if (result.success && result.data) {
+        const p = result.data;
+        const dob = new Date(p.date_of_birth);
+        const age = Math.floor((new Date() - dob) / (365.25 * 24 * 60 * 60 * 1000));
+        const idProof = p.id_proof_type ? `${p.id_proof_type}: ${p.id_proof_number}` : 'N/A';
+        alert(`Passenger #${p.passenger_id}\nName: ${p.first_name} ${p.last_name}\nEmail: ${p.email}\nPhone: ${p.phone_number}\nAge: ${age}\nID Proof: ${idProof}`);
+      } else {
+        alert('Failed to load passenger details');
+      }
+    });
+}
+
+function editPassenger(passengerId) {
+  fetch(`/api/passengers/${passengerId}`)
+    .then(response => response.json())
+    .then(result => {
+      if (result.success && result.data) {
+        const p = result.data;
+        editingPassengerId = passengerId;
+        document.getElementById('passengerModal').style.display = 'flex';
+        document.querySelector('#passengerModal h2').textContent = `Edit Passenger #${passengerId}`;
+        document.querySelector('#passengerForm .btn-primary').textContent = 'Update Passenger';
+        
+        document.querySelector('#passengerForm input[name="first_name"]').value = p.first_name;
+        document.querySelector('#passengerForm input[name="last_name"]').value = p.last_name;
+        document.querySelector('#passengerForm input[name="email"]').value = p.email;
+        document.querySelector('#passengerForm input[name="phone_number"]').value = p.phone_number;
+        document.querySelector('#passengerForm input[name="date_of_birth"]').value = p.date_of_birth;
+        document.querySelector('#passengerForm select[name="id_proof_type"]').value = p.id_proof_type;
+        document.querySelector('#passengerForm input[name="id_proof_number"]').value = p.id_proof_number;
+        
+        // Show existing photo if available
+        if (p.profile_image) {
+          document.getElementById('passengerPhotoPreview').innerHTML = `<img src="${p.profile_image}" alt="Current photo" style="max-width: 200px; max-height: 200px;">`;
+        } else {
+          document.getElementById('passengerPhotoPreview').innerHTML = '';
+        }
+      } else {
+        alert('Failed to load passenger');
+      }
+    });
+}
+
+function deletePassenger(passengerId) {
+  if (!confirm('Are you sure you want to delete this passenger? This action cannot be undone.')) return;
+  
+  fetch(`/api/passengers/${passengerId}`, {
+    method: 'DELETE'
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.success) {
+      alert('Passenger deleted successfully');
+      loadPassengers();
+    } else {
+      alert('Error: ' + (result.error || 'Failed to delete passenger'));
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Failed to delete passenger: ' + error.message);
+  });
+}
+
 function loadPassengers() {
-  fetch('/api/passengers?page=1&limit=20')
+  fetch('/api/passengers?page=1&limit=50')
     .then(response => response.json())
     .then(result => {
       if (result.success && result.data) {
@@ -215,9 +307,9 @@ function loadPassengers() {
             <td>${idProof}</td>
             <td>0</td>
             <td>
-              <button class="btn-icon" title="View details">👁️</button>
-              <button class="btn-icon" title="Edit">✏️</button>
-              <button class="btn-icon" title="Delete">🗑️</button>
+              <button class="btn-icon" title="View details" onclick="viewPassenger(${passenger.passenger_id})">👁️</button>
+              <button class="btn-icon" title="Edit" onclick="editPassenger(${passenger.passenger_id})">✏️</button>
+              <button class="btn-icon" title="Delete" onclick="deletePassenger(${passenger.passenger_id})">🗑️</button>
             </td>
           </tr>`;
           tbody.innerHTML += row;
