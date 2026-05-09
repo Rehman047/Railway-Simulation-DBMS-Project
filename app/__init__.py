@@ -16,36 +16,42 @@ _DB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 
 def _split_sql(sql: str):
     """
-    Split a SQL file into individual statements.
-    Respects PostgreSQL $$ dollar-quoting so PL/pgSQL
-    function bodies are not broken on inner semicolons.
+    Split a SQL script into individual statements.
+    Uses character-by-character scanning so PostgreSQL
+    $$ dollar-quoted blocks (used by PL/pgSQL functions)
+    are never broken mid-body on an inner semicolon.
     """
     statements = []
-    current = []
+    buf = []
+    i = 0
     in_dollar_quote = False
 
-    for line in sql.splitlines():
-        stripped = line.strip()
-        # A line comment outside a dollar-quoted block: skip accumulation
-        if stripped.startswith('--') and not in_dollar_quote:
-            current.append(line)
+    while i < len(sql):
+        # Detect $$ marker
+        if sql[i:i+2] == '$$':
+            in_dollar_quote = not in_dollar_quote
+            buf.append('$$')
+            i += 2
             continue
-        # Toggle dollar-quote state for each $$ occurrence on this line
-        if '$$' in stripped:
-            if stripped.count('$$') % 2 == 1:
-                in_dollar_quote = not in_dollar_quote
-        current.append(line)
-        # A semicolon outside a dollar-quoted block ends the statement
-        if not in_dollar_quote and stripped.endswith(';'):
-            stmt = '\n'.join(current).strip()
+
+        # Semicolon outside dollar-quote = end of statement
+        if sql[i] == ';' and not in_dollar_quote:
+            buf.append(';')
+            stmt = ''.join(buf).strip()
             if stmt and stmt != ';':
                 statements.append(stmt)
-            current = []
+            buf = []
+            i += 1
+            continue
 
-    # Flush any trailing content
-    remaining = '\n'.join(current).strip()
-    if remaining and remaining != ';':
+        buf.append(sql[i])
+        i += 1
+
+    # Flush any trailing non-semicolon content
+    remaining = ''.join(buf).strip()
+    if remaining:
         statements.append(remaining)
+
     return statements
 
 

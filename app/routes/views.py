@@ -91,14 +91,6 @@ def trains():
     return render_template('trains.html', trains=trains_list)
 
 
-# ── One-Click Backup Dashboard ────────────────────────────────────
-
-@views_bp.route('/backup')
-def backup_dashboard():
-    """One-click backup dashboard page."""
-    return render_template('backup_dashboard.html')
-
-
 # ── Stations ─────────────────────────────────────────────────────
 
 @views_bp.route('/stations')
@@ -397,3 +389,29 @@ def demo():
         # Transactions
         recent_transactions=recent_transactions,
     )
+
+
+# ── Firebase Frontend Demo ────────────────────────────────────────
+
+@views_bp.route('/firebase')
+def firebase_demo():
+    """Firebase frontend page — uses Firebase JS SDK to read/write from the browser."""
+    from flask import current_app
+    cfg = current_app.config
+    firebase_config = {
+        'apiKey':            cfg.get('FIREBASE_API_KEY', ''),
+        'authDomain':        cfg.get('FIREBASE_AUTH_DOMAIN', ''),
+        'projectId':         cfg.get('FIREBASE_PROJECT_ID', ''),
+        'storageBucket':     cfg.get('FIREBASE_STORAGE_BUCKET', ''),
+        'messagingSenderId': cfg.get('FIREBASE_MESSAGING_SENDER_ID', ''),
+        'appId':             cfg.get('FIREBASE_APP_ID', ''),
+    }
+    return render_template('firebase_demo.html', firebase_config=firebase_config)
+
+
+# ── One-Click Backup Dashboard ────────────────────────────────────
+
+@views_bp.route('/backup')
+def backup_dashboard():
+    """One-click backup dashboard page."""
+    return render_template('backup_dashboard.html')
