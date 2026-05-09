@@ -112,3 +112,91 @@ def trigger_auto_backup():
             'success': False,
             'error': str(e)
         }), 400
+
+
+# ── One-Click Backup (no admin guard — called from UI) ────────────────
+@backups_bp.route('/one-click', methods=['POST'])
+def one_click_backup():
+    """
+    Full database → Firebase Firestore backup.
+    Returns per-table counts and status so the UI can
+    show a live progress breakdown.
+    """
+    from datetime import datetime
+    from app.db import Database
+
+    tables = [
+        'stations', 'passengers', 'staff', 'trains', 'coaches',
+        'seats', 'services', 'amenities', 'routes', 'station_services',
+        'schedules', 'bookings', 'payments', 'cancellations',
+    ]
+
+    started_at = datetime.now().isoformat()
+    results = {}
+    total_records = 0
+    total_success = 0
+
+    for table in tables:
+        try:
+            rows = Database.fetch_all(f"SELECT * FROM {table}")
+            if rows:
+                data = {str(i): row for i, row in enumerate(rows)}
+                fb = FirebaseClient.backup_data(table, data)
+                ok = fb.get('success', False)
+            else:
+                ok = True   # empty table counts as success
+
+            results[table] = {
+                'status': 'success' if ok else 'failed',
+                'records': len(rows) if rows else 0,
+                'error': None if ok else fb.get('error'),
+            }
+            total_records += len(rows) if rows else 0
+            if ok:
+                total_success += 1
+        except Exception as e:
+            results[table] = {'status': 'failed', 'records': 0, 'error': str(e)}
+
+    # Save a backup record to Firebase
+    try:
+        FirebaseClient.save_backup_record({
+            'backup_type': 'one_click',
+            'started_at': started_at,
+            'finished_at': datetime.now().isoformat(),
+            'total_records': total_records,
+            'tables_succeeded': total_success,
+            'tables_total': len(tables),
+        })
+    except Exception:
+        pass
+
+    return jsonify({
+        'success': total_success == len(tables),
+        'started_at': started_at,
+        'finished_at': datetime.now().isoformat(),
+        'total_records': total_records,
+        'tables_succeeded': total_success,
+        'tables_total': len(tables),
+        'results': results,
+    }), 200
+
+
+@backups_bp.route('/table-counts', methods=['GET'])
+def table_counts():
+    """Return row counts for all backup-able tables."""
+    from app.db import Database
+    tables = [
+        'stations', 'passengers', 'staff', 'trains', 'coaches',
+        'seats', 'services', 'amenities', 'routes', 'station_services',
+        'schedules', 'bookings', 'payments', 'cancellations',
+    ]
+    counts = {}
+    total = 0
+    for t in tables:
+        try:
+            n = Database.fetch_scalar(f"SELECT COUNT(*) FROM {t}") or 0
+            counts[t] = n
+            total += n
+        except Exception:
+            counts[t] = None
+    return jsonify({'success': True, 'counts': counts, 'total': total}), 200

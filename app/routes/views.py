@@ -91,6 +91,14 @@ def trains():
     return render_template('trains.html', trains=trains_list)
 
 
+# ── One-Click Backup Dashboard ────────────────────────────────────
+
+@views_bp.route('/backup')
+def backup_dashboard():
+    """One-click backup dashboard page."""
+    return render_template('backup_dashboard.html')
+
+
 # ── Stations ─────────────────────────────────────────────────────
 
 @views_bp.route('/stations')

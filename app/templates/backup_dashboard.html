@@ -1,0 +1,353 @@
+{% extends "base.html" %}
+{% block title %}One-Click Backup — Railway DBMS{% endblock %}
+{% block page_title %}One-Click Backup{% endblock %}
+{% block page_subtitle %}Backup your entire PostgreSQL database to Firebase Firestore in one click{% endblock %}
+
+{% block content %}
+<style>
+  /* ── Layout ─────────────────────────────── */
+  .bk-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
+  @media(max-width:860px){ .bk-grid { grid-template-columns:1fr; } }
+
+  /* ── Cards ──────────────────────────────── */
+  .bk-card {
+    background:var(--card-bg,#1e2433); border-radius:14px;
+    padding:24px; border:1px solid rgba(255,255,255,0.07);
+  }
+  .bk-card h3 { margin:0 0 4px; font-size:1rem; display:flex; align-items:center; gap:8px; }
+  .bk-card .sub { color:#8892a4; font-size:0.82rem; margin:0 0 18px; }
+
+  /* ── Big CTA Button ─────────────────────── */
+  .btn-backup {
+    width:100%; padding:18px; border-radius:14px; border:none; cursor:pointer;
+    font-size:1.1rem; font-weight:700; letter-spacing:.03em;
+    background:linear-gradient(135deg,#ff6f00,#e65100);
+    color:#fff; box-shadow:0 6px 30px rgba(255,111,0,.4);
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    transition:all .25s; position:relative; overflow:hidden;
+  }
+  .btn-backup:hover:not(:disabled){ transform:translateY(-2px); box-shadow:0 10px 40px rgba(255,111,0,.5); }
+  .btn-backup:disabled{ opacity:.6; cursor:not-allowed; transform:none; }
+  .btn-backup .spinner{
+    width:20px; height:20px; border:3px solid rgba(255,255,255,0.3);
+    border-top-color:#fff; border-radius:50%;
+    animation:spin .7s linear infinite; display:none;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  /* ── Stats row ──────────────────────────── */
+  .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+  @media(max-width:700px){ .stats-row { grid-template-columns:repeat(2,1fr); } }
+  .stat-box {
+    background:var(--card-bg,#1e2433); border-radius:12px; padding:16px;
+    text-align:center; border:1px solid rgba(255,255,255,0.07);
+  }
+  .stat-box .val { font-size:1.6rem; font-weight:800; color:#ff9800; }
+  .stat-box .lbl { font-size:0.75rem; color:#8892a4; margin-top:2px; }
+
+  /* ── Progress table ─────────────────────── */
+  .progress-table { width:100%; border-collapse:collapse; font-size:0.83rem; }
+  .progress-table th {
+    background:rgba(255,255,255,0.04); color:#ff9800;
+    padding:9px 14px; text-align:left;
+    font-size:0.72rem; text-transform:uppercase; letter-spacing:.06em;
+  }
+  .progress-table td { padding:9px 14px; border-bottom:1px solid rgba(255,255,255,0.04); color:#c9d1e0; }
+  .progress-table tr:last-child td { border-bottom:none; }
+  .progress-table tr.row-ok   td:first-child { border-left:3px solid #34d399; }
+  .progress-table tr.row-fail td:first-child { border-left:3px solid #f87171; }
+  .progress-table tr.row-wait td:first-child { border-left:3px solid #6b7280; }
+
+  .badge {
+    display:inline-block; padding:2px 10px; border-radius:20px;
+    font-size:0.7rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+  }
+  .badge-ok   { background:rgba(52,211,153,.15); color:#34d399; }
+  .badge-fail { background:rgba(248,113,113,.15); color:#f87171; }
+  .badge-wait { background:rgba(107,114,128,.15); color:#9ca3af; }
+  .badge-busy { background:rgba(251,191,36,.15);  color:#fbbf24; }
+
+  /* ── Log ────────────────────────────────── */
+  .log-box {
+    background:#0d1117; border-radius:8px; padding:14px 16px;
+    font-family:'Fira Code',monospace; font-size:0.78rem;
+    min-height:80px; max-height:200px; overflow-y:auto;
+    border:1px solid rgba(255,255,255,0.06);
+  }
+  .l-ok   { color:#34d399; }
+  .l-err  { color:#f87171; }
+  .l-info { color:#60a5fa; }
+  .l-warn { color:#fbbf24; }
+
+  /* ── Pulse animation for active rows ─────── */
+  @keyframes pulse-row{ 0%,100%{opacity:1} 50%{opacity:.5} }
+  .row-busy td { animation:pulse-row 1.2s ease infinite; }
+
+  /* ── History table ──────────────────────── */
+  .hist-table { width:100%; border-collapse:collapse; font-size:0.82rem; }
+  .hist-table th { background:rgba(255,255,255,0.04); color:#60a5fa; padding:8px 12px;
+                   text-align:left; font-size:0.72rem; text-transform:uppercase; letter-spacing:.06em; }
+  .hist-table td { padding:8px 12px; border-bottom:1px solid rgba(255,255,255,0.04); color:#c9d1e0; }
+  .hist-table tr:last-child td { border-bottom:none; }
+
+  .overall-result {
+    border-radius:12px; padding:16px 20px; margin-bottom:16px;
+    font-size:0.9rem; font-weight:600; display:none;
+  }
+  .overall-ok   { background:rgba(52,211,153,.12); border:1px solid rgba(52,211,153,.3); color:#34d399; }
+  .overall-fail { background:rgba(248,113,113,.12); border:1px solid rgba(248,113,113,.3); color:#f87171; }
+</style>
+
+<!-- ── Summary Stats (loaded on page ready) ───────────────── -->
+<div class="stats-row">
+  <div class="stat-box"><div class="val" id="stat-tables">—</div><div class="lbl">Tables</div></div>
+  <div class="stat-box"><div class="val" id="stat-records">—</div><div class="lbl">Total Records</div></div>
+  <div class="stat-box"><div class="val" id="stat-last">—</div><div class="lbl">Last Backup</div></div>
+  <div class="stat-box"><div class="val" id="stat-status" style="font-size:1rem">Idle</div><div class="lbl">Status</div></div>
+</div>
+
+<!-- ── Main area ──────────────────────────────────────────── -->
+<div class="bk-grid">
+
+  <!-- LEFT: CTA + Log -->
+  <div>
+    <div class="bk-card" style="margin-bottom:16px">
+      <h3>🔥 Firebase Firestore Backup</h3>
+      <p class="sub">Fetches every row from all 14 tables and pushes them to Firestore. Takes ~5 seconds.</p>
+
+      <button class="btn-backup" id="btn-backup" onclick="runBackup()">
+        <div class="spinner" id="spinner"></div>
+        <span id="btn-label">🚀 Run Full Backup Now</span>
+      </button>
+    </div>
+
+    <!-- Result banner -->
+    <div class="overall-result" id="overall-result"></div>
+
+    <!-- Log -->
+    <div class="bk-card">
+      <h3>📋 Live Log</h3>
+      <div class="log-box" id="log"><span class="l-info">// Click the button to start a backup…</span></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Per-table progress -->
+  <div class="bk-card">
+    <h3>📊 Per-Table Progress</h3>
+    <p class="sub">Each table's status is updated after the backup completes.</p>
+    <div style="overflow-x:auto">
+      <table class="progress-table" id="progress-table">
+        <thead>
+          <tr><th>Table</th><th>Records</th><th>Status</th></tr>
+        </thead>
+        <tbody id="progress-body">
+          <!-- Populated by loadCounts() -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── Backup History ─────────────────────────────────────── -->
+<div class="bk-card">
+  <h3>🕒 Backup History <small style="color:#8892a4;font-weight:400;font-size:.8rem">(from Firebase)</small></h3>
+  <p class="sub">Records saved to Firestore's <code>backup_history</code> collection after each run.</p>
+  <div id="history-area">
+    <div class="log-box"><span class="l-info">// History loads automatically from Firebase…</span></div>
+  </div>
+</div>
+
+<script>
+  const TABLES = [
+    'stations','passengers','staff','trains','coaches',
+    'seats','services','amenities','routes','station_services',
+    'schedules','bookings','payments','cancellations'
+  ];
+
+  // ── Helpers ─────────────────────────────────────────────
+  function log(msg, type='info') {
+    const el = document.getElementById('log');
+    const ts  = new Date().toLocaleTimeString();
+    el.innerHTML += `\n<span class="l-${type}">[${ts}] ${msg}</span>`;
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function fmt(n) { return n == null ? '?' : n.toLocaleString(); }
+
+  function setStatus(txt, color='#ff9800') {
+    const el = document.getElementById('stat-status');
+    el.textContent = txt;
+    el.style.color = color;
+  }
+
+  // ── Build initial table rows ─────────────────────────────
+  function buildRows(counts) {
+    const tbody = document.getElementById('progress-body');
+    tbody.innerHTML = '';
+    let total = 0;
+    TABLES.forEach(t => {
+      const n = counts[t];
+      if (n != null) total += n;
+      const tr = document.createElement('tr');
+      tr.id = `row-${t}`;
+      tr.className = 'row-wait';
+      tr.innerHTML = `
+        <td>${t}</td>
+        <td id="rec-${t}">${fmt(n)}</td>
+        <td><span class="badge badge-wait" id="badge-${t}">Pending</span></td>`;
+      tbody.appendChild(tr);
+    });
+    document.getElementById('stat-tables').textContent  = TABLES.length;
+    document.getElementById('stat-records').textContent = fmt(total);
+  }
+
+  // ── Load record counts on page load ─────────────────────
+  async function loadCounts() {
+    try {
+      const r = await fetch('/api/backups/table-counts');
+      const d = await r.json();
+      if (d.success) {
+        buildRows(d.counts);
+        log(`Loaded record counts — total ${fmt(d.total)} rows across ${TABLES.length} tables`, 'info');
+      }
+    } catch(e) {
+      buildRows({});
+      log(`Could not load record counts: ${e.message}`, 'warn');
+    }
+  }
+
+  // ── Mark all rows as "running" ───────────────────────────
+  function setAllBusy() {
+    TABLES.forEach(t => {
+      const tr = document.getElementById(`row-${t}`);
+      if (tr) { tr.className = 'row-busy'; }
+      const badge = document.getElementById(`badge-${t}`);
+      if (badge) { badge.className = 'badge badge-busy'; badge.textContent = 'Backing up…'; }
+    });
+  }
+
+  // ── Apply per-table results ──────────────────────────────
+  function applyResults(results) {
+    Object.entries(results).forEach(([table, info]) => {
+      const tr = document.getElementById(`row-${table}`);
+      const badge = document.getElementById(`badge-${table}`);
+      const recEl = document.getElementById(`rec-${table}`);
+      if (!tr || !badge) return;
+
+      if (info.status === 'success') {
+        tr.className = 'row-ok';
+        badge.className = 'badge badge-ok';
+        badge.textContent = '✓ Done';
+      } else {
+        tr.className = 'row-fail';
+        badge.className = 'badge badge-fail';
+        badge.textContent = '✗ Failed';
+      }
+      if (recEl) recEl.textContent = fmt(info.records);
+    });
+  }
+
+  // ── ONE-CLICK BACKUP ─────────────────────────────────────
+  async function runBackup() {
+    const btn    = document.getElementById('btn-backup');
+    const label  = document.getElementById('btn-label');
+    const spin   = document.getElementById('spinner');
+    const banner = document.getElementById('overall-result');
+
+    btn.disabled      = true;
+    label.textContent = 'Backing up…';
+    spin.style.display= 'block';
+    banner.style.display = 'none';
+    setStatus('Running…', '#fbbf24');
+
+    setAllBusy();
+    log('▶ Starting full database → Firebase backup…', 'info');
+
+    try {
+      const resp = await fetch('/api/backups/one-click', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await resp.json();
+
+      applyResults(data.results || {});
+
+      const ok = data.success;
+      log(`Finished — ${data.tables_succeeded}/${data.tables_total} tables succeeded, ${fmt(data.total_records)} records pushed`, ok ? 'ok' : 'err');
+
+      // Show banner
+      banner.style.display = 'block';
+      if (ok) {
+        banner.className = 'overall-result overall-ok';
+        banner.innerHTML = `✅ Backup complete — <strong>${fmt(data.total_records)}</strong> records stored in Firebase Firestore.`;
+        setStatus('Done ✓', '#34d399');
+      } else {
+        banner.className = 'overall-result overall-fail';
+        banner.innerHTML = `⚠️ Backup finished with errors — ${data.tables_succeeded}/${data.tables_total} tables succeeded.`;
+        setStatus('Partial', '#f87171');
+      }
+
+      // Update "last backup" stat
+      document.getElementById('stat-last').textContent = new Date().toLocaleTimeString();
+
+      // Log individual failures
+      Object.entries(data.results || {}).forEach(([t, info]) => {
+        if (info.status !== 'success') log(`  ✗ ${t}: ${info.error}`, 'err');
+        else log(`  ✓ ${t}: ${fmt(info.records)} records`, 'ok');
+      });
+
+      // Refresh history
+      loadHistory();
+
+    } catch(e) {
+      log(`Network error: ${e.message}`, 'err');
+      setStatus('Error', '#f87171');
+      TABLES.forEach(t => {
+        const tr = document.getElementById(`row-${t}`);
+        if (tr) tr.className = 'row-fail';
+      });
+    } finally {
+      btn.disabled      = false;
+      label.textContent = '🚀 Run Full Backup Now';
+      spin.style.display= 'none';
+    }
+  }
+
+  // ── Backup History (from Flask /api/backups/history) ──────
+  async function loadHistory() {
+    const area = document.getElementById('history-area');
+    try {
+      const r = await fetch('/api/backups/history');
+      const d = await r.json();
+      if (!d.success || !d.backups || !d.backups.length) {
+        area.innerHTML = `<div class="log-box"><span class="l-warn">// No backup history found in Firebase yet. Run a backup first.</span></div>`;
+        return;
+      }
+      const rows = d.backups.map(b => `
+        <tr>
+          <td>${(b.timestamp || b.started_at || '—').slice(0,19).replace('T',' ')}</td>
+          <td>${b.backup_type || 'full'}</td>
+          <td>${fmt(b.total_records)}</td>
+          <td>${b.tables_succeeded ?? '—'} / ${b.tables_total ?? '—'}</td>
+          <td><span class="badge ${(b.tables_succeeded === b.tables_total) ? 'badge-ok' : 'badge-fail'}">
+            ${(b.tables_succeeded === b.tables_total) ? '✓ Success' : '⚠ Partial'}
+          </span></td>
+        </tr>`).join('');
+      area.innerHTML = `
+        <div style="overflow-x:auto">
+        <table class="hist-table">
+          <thead><tr>
+            <th>Timestamp</th><th>Type</th><th>Records</th><th>Tables</th><th>Status</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>`;
+    } catch(e) {
+      area.innerHTML = `<div class="log-box"><span class="l-warn">// Firebase not configured — history unavailable.</span></div>`;
+    }
+  }
+
+  // ── Init ─────────────────────────────────────────────────
+  loadCounts();
+  loadHistory();
+</script>
+{% endblock %}

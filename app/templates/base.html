@@ -64,6 +64,14 @@
                     class="nav-item {% if request.endpoint == 'views.demo' %}active{% endif %}">
                     <span class="nav-icon">🔬</span> DBMS Features
                 </a>
+                <a href="{{ url_for('views.firebase_demo') }}"
+                    class="nav-item {% if request.endpoint == 'views.firebase_demo' %}active{% endif %}">
+                    <span class="nav-icon">🔥</span> Firebase Storage
+                </a>
+                <a href="{{ url_for('views.backup_dashboard') }}"
+                    class="nav-item {% if request.endpoint == 'views.backup_dashboard' %}active{% endif %}">
+                    <span class="nav-icon">💾</span> One-Click Backup
+                </a>
             </nav>
         </aside>
 
