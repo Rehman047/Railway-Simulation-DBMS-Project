@@ -102,6 +102,16 @@ UPDATE_BOOKING_STATUS = """
     WHERE booking_id = %s
 """
 
+# Update editable booking fields
+UPDATE_BOOKING = """
+    UPDATE bookings
+    SET passenger_id = %s,
+        schedule_id = %s,
+        seat_id = %s,
+        fare_amount = %s
+    WHERE booking_id = %s
+"""
+
 # Count bookings by status
 COUNT_BOOKINGS_BY_STATUS = """
     SELECT booking_status, COUNT(*) as count
@@ -121,6 +131,12 @@ CHECK_SEAT_BOOKED = """
 CANCEL_BOOKING = """
     UPDATE bookings
     SET booking_status = 'cancelled'
+    WHERE booking_id = %s
+"""
+
+# Delete booking (hard delete)
+DELETE_BOOKING = """
+    DELETE FROM bookings
     WHERE booking_id = %s
 """
 

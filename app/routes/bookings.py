@@ -131,6 +131,59 @@ def cancel_booking(booking_id: int):
     return jsonify(result), 400
 
 
+@bookings_bp.route('/<int:booking_id>', methods=['PUT'])
+def update_booking(booking_id: int):
+    """
+    Update booking fields.
+    Expected JSON:
+    {
+      "passenger_id": int,
+      "schedule_id": int,
+      "seat_id": int,
+      "fare_amount": number
+    }
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'error': 'Request body is required'}), 400
+
+    required_fields = ['passenger_id', 'schedule_id', 'seat_id', 'fare_amount']
+    missing = [field for field in required_fields if field not in data]
+    if missing:
+        return jsonify({'success': False, 'error': f'Missing required fields: {", ".join(missing)}'}), 400
+
+    try:
+        passenger_id = int(data['passenger_id'])
+        schedule_id = int(data['schedule_id'])
+        seat_id = int(data['seat_id'])
+        fare_amount = float(data['fare_amount'])
+    except (ValueError, TypeError):
+        return jsonify({'success': False, 'error': 'Invalid field types in request body'}), 400
+
+    result = BookingService.update_booking(
+        booking_id=booking_id,
+        passenger_id=passenger_id,
+        schedule_id=schedule_id,
+        seat_id=seat_id,
+        fare_amount=fare_amount,
+    )
+
+    if result.get('success'):
+        return jsonify(result), 200
+    return jsonify(result), 400
+
+
+@bookings_bp.route('/<int:booking_id>', methods=['DELETE'])
+def delete_booking(booking_id: int):
+    """
+    Delete booking by booking_id.
+    """
+    result = BookingService.delete_booking(booking_id)
+    if result.get('success'):
+        return jsonify(result), 200
+    return jsonify(result), 400
+
+
 @bookings_bp.route('/passenger/<int:passenger_id>', methods=['GET'])
 def get_passenger_bookings(passenger_id: int):
     """Get all bookings for a specific passenger."""
