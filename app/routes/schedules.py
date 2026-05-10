@@ -5,6 +5,7 @@ Complete schedule management endpoints
 from flask import Blueprint, request, jsonify
 from app.services.firebase_client import FirebaseClient
 from app.services.schedule_service import ScheduleService
+from app.services.auth_service import require_admin_auth
 from datetime import datetime
 
 schedules_bp = Blueprint('schedules', __name__, url_prefix='/api/schedules')
@@ -82,6 +83,7 @@ def get_schedule(schedule_id):
 # ==================== CREATE SCHEDULE ====================
 
 @schedules_bp.route('', methods=['POST'])
+@require_admin_auth
 def create_schedule():
     """
     Create a new schedule
@@ -177,6 +179,7 @@ def create_schedule():
 # ==================== UPDATE SCHEDULE ====================
 
 @schedules_bp.route('/<int:schedule_id>', methods=['PUT'])
+@require_admin_auth
 def update_schedule(schedule_id):
     """
     Update schedule times
@@ -258,6 +261,7 @@ def update_schedule(schedule_id):
 # ==================== DELETE SCHEDULE ====================
 
 @schedules_bp.route('/<int:schedule_id>', methods=['DELETE'])
+@require_admin_auth
 def delete_schedule(schedule_id):
     """
     Delete a schedule (only if no bookings)

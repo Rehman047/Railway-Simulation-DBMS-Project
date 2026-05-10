@@ -8,6 +8,7 @@ from app.queries.train_queries import (
 from app.queries.coach_queries import LIST_COACHES_BY_TRAIN
 from app.services.firebase_client import FirebaseClient
 from app.services.validators import validate_create_train
+from app.services.auth_service import require_admin_auth
 
 trains_bp = Blueprint('trains', __name__, url_prefix='/api/trains')
 
@@ -65,6 +66,7 @@ def get_train(train_id: int):
 # ── Create ────────────────────────────────────────────────────
 
 @trains_bp.route('', methods=['POST'])
+@require_admin_auth
 def create_train():
     """
     Create a new train.
@@ -112,6 +114,7 @@ def create_train():
 # ── Update ────────────────────────────────────────────────────
 
 @trains_bp.route('/<int:train_id>', methods=['PUT'])
+@require_admin_auth
 def update_train(train_id: int):
     """Update train info. Updatable fields: train_name, train_type, capacity, total_coaches, status."""
     data = request.get_json()
@@ -158,6 +161,7 @@ def update_train(train_id: int):
 # ── Delete ────────────────────────────────────────────────────
 
 @trains_bp.route('/<int:train_id>', methods=['DELETE'])
+@require_admin_auth
 def delete_train(train_id: int):
     """Delete a train."""
     train = Database.fetch_one(GET_TRAIN, (train_id,))

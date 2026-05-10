@@ -7,6 +7,7 @@ from app.queries.station_queries import (
 )
 from app.services.firebase_client import FirebaseClient
 from app.services.validators import validate_create_station
+from app.services.auth_service import require_admin_auth
 
 stations_bp = Blueprint('stations', __name__, url_prefix='/api/stations')
 
@@ -57,6 +58,7 @@ def get_station(station_id: int):
 # ── Create ────────────────────────────────────────────────────
 
 @stations_bp.route('', methods=['POST'])
+@require_admin_auth
 def create_station():
     """
     Create a new station.
@@ -115,6 +117,7 @@ def get_station_services(station_id: int):
 
 
 @stations_bp.route('/<int:station_id>', methods=['PUT'])
+@require_admin_auth
 def update_station(station_id: int):
     """Update station information."""
     station = Database.fetch_one(GET_STATION, (station_id,))
@@ -142,6 +145,7 @@ def update_station(station_id: int):
 
 
 @stations_bp.route('/<int:station_id>', methods=['DELETE'])
+@require_admin_auth
 def delete_station(station_id: int):
     """Delete a station."""
     station = Database.fetch_one(GET_STATION, (station_id,))

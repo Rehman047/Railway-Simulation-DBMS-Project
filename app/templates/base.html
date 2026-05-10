@@ -81,9 +81,14 @@
                     <p>{% block page_subtitle %}Railway Database Management System{% endblock %}</p>
                 </div>
                 <div class="topbar-right">
-                    <div class="status-badge">
-                        <span class="status-dot"></span>
-                        System Online
+                    <div class="auth-section">
+                        <div id="auth-status" class="status-badge">
+                            <span class="status-dot"></span>
+                            System Online
+                        </div>
+                        <button id="auth-button" class="btn-secondary" onclick="handleAuthClick()">
+                            Login (Admin)
+                        </button>
                     </div>
                 </div>
             </header>
@@ -107,7 +112,45 @@
 
         </div>
     </div>
+
+    <!-- ── Auth Modal ────────────────────────────────────────────── -->
+    <div id="auth-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Admin Authentication</h3>
+                <button class="modal-close" onclick="closeAuthModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="auth-form-container">
+                    <form id="auth-form" onsubmit="handleAdminLogin(event)">
+                        <div class="form-group">
+                            <label for="admin-password">Admin Password</label>
+                            <input 
+                                type="password" 
+                                id="admin-password" 
+                                name="password" 
+                                required 
+                                placeholder="Enter admin password"
+                                autofocus
+                            />
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn-primary">Login as Admin</button>
+                            <button type="button" class="btn-secondary" onclick="closeAuthModal()">Cancel</button>
+                        </div>
+                    </form>
+                    <div id="auth-error" class="error-message" style="display: none; margin-top: 12px;"></div>
+                </div>
+                <div id="auth-success-container" style="display: none; text-align: center;">
+                    <p style="color: #27ae60; font-weight: bold;">✅ Admin authenticated successfully!</p>
+                    <button type="button" class="btn-primary" onclick="closeAuthModal()" style="margin-top: 12px;">Continue</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 </body>
 
 </html>

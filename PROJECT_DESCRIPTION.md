@@ -336,6 +336,7 @@ Audits all payment status changes
    psql railway_db < database/views_procedures.sql
    psql railway_db < database/indexes.sql
    psql railway_db < database/seed.sql
+   psql railway_db < database/railway_backup_triggers.sql
    ```
 
 6. **Set up environment variables**

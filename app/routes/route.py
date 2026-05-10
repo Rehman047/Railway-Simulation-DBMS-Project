@@ -5,6 +5,7 @@ Flask routes for train route management
 from flask import Blueprint, request, jsonify
 from app.services.firebase_client import FirebaseClient
 from app.services.route_service import RouteService
+from app.services.auth_service import require_admin_auth
 from app.db import Database
 
 routes_bp = Blueprint('routes', __name__, url_prefix='/api/routes')
@@ -81,6 +82,7 @@ def get_route(route_id):
 # ==================== CREATE ROUTE ====================
 
 @routes_bp.route('', methods=['POST'])
+@require_admin_auth
 def create_route():
     """
     Create a new route
@@ -161,6 +163,7 @@ def create_route():
 # ==================== UPDATE ROUTE ====================
 
 @routes_bp.route('/<int:route_id>', methods=['PUT'])
+@require_admin_auth
 def update_route(route_id):
     """
     Update route distance and/or estimated duration
@@ -241,6 +244,7 @@ def update_route(route_id):
 # ==================== DELETE ROUTE ====================
 
 @routes_bp.route('/<int:route_id>', methods=['DELETE'])
+@require_admin_auth
 def delete_route(route_id):
     """
     Delete a route (only if no schedules exist)

@@ -12,7 +12,7 @@ A comprehensive Flask-based Railway Management System with PostgreSQL backend, f
 - **Database Procedures**: Advanced SQL procedures for complex operations
 - **Firebase Integration**: Cloud backup and data synchronization
 - **File Storage**: Image upload and cloud storage support
-- **User Roles**: Multi-level access control (Admin, Agent, Passenger, Finance, Operations, Station Manager, Analyst)
+- **Two-Tier Authentication System**: Admin and Simple User roles with password-protected admin operations
 - **RESTful API**: Complete JSON API with pagination and filtering
 
 ## Tech Stack
@@ -58,6 +58,31 @@ python run.py
 ```
 
 Visit `http://localhost:5000` to access the dashboard.
+
+## Authentication System
+
+The application uses a **two-tier user system**:
+
+### Admin User
+- Can add/delete/edit trains, stations, routes, and schedules
+- Requires password authentication for admin operations
+- Session-based (24-hour default timeout)
+
+### Simple User (Default)
+- Can view all data
+- Can make and cancel bookings
+- No password required
+
+### Setting Admin Password
+
+```env
+# In .env file or environment variable
+ADMIN_PASSWORD=your_secure_password_here
+```
+
+Default password (change in production): `admin@railway123`
+
+**For detailed documentation, see [AUTHENTICATION.md](AUTHENTICATION.md)**
 
 ## Project Structure
 

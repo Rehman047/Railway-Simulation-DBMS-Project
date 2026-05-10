@@ -107,6 +107,11 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(config)
     
+    # Configure session
+    app.config['SESSION_TYPE'] = 'filesystem'
+    app.config['SESSION_PERMANENT'] = False
+    app.config['SESSION_USE_SIGNER'] = True
+    
     # Set database configuration for lazy initialization
     DatabaseConnection.set_config(config)
 
@@ -130,6 +135,10 @@ def create_app():
 
 def register_blueprints(app):
     """Register all Flask blueprints"""
+    # Authentication routes
+    from app.routes.auth import auth_bp
+    app.register_blueprint(auth_bp)
+    
     # HTML view pages (server-side rendered)
     from app.routes.views import views_bp
     app.register_blueprint(views_bp)
