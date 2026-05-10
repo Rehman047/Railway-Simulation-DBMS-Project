@@ -2,129 +2,186 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Railway DBMS – User Flow</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Railway DBMS - Flowchart Diagram</title>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
-      background: #ffffff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 30px 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 2em;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 0.95em;
+    }
+
+    .mermaid-wrapper {
       display: flex;
-      flex-direction: column;
-      align-items: center;
+      justify-content: center;
+      background: #fafafa;
+      border-radius: 10px;
+      border: 2px solid #ddd;
       padding: 20px;
-      font-family: 'Segoe UI', sans-serif;
+      overflow-x: auto;
     }
-    h2 {
-      font-size: 15px;
-      color: #1e293b;
-      margin-bottom: 12px;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
+
+    .note {
+      margin-top: 20px;
+      padding: 15px;
+      background: #e3f2fd;
+      border-left: 4px solid #667eea;
+      border-radius: 4px;
+      color: #333;
+      font-size: 0.9em;
+      line-height: 1.5;
     }
-    #diagram {
-      width: 100%;
-      max-width: 960px;
-    }
-    .mermaid svg {
-      max-width: 100% !important;
+
+    .note strong {
+      color: #667eea;
     }
   </style>
 </head>
 <body>
-  <h2>Railway Simulation DBMS — User Flow</h2>
-  <div id="diagram">
-    <div class="mermaid">
+  <div class="container">
+    <h1>🚂 Railway DBMS - Flowchart</h1>
+    <p class="subtitle">User & Admin Journey with Corresponding Tables, Routes, and Templates</p>
+
+    <div class="mermaid-wrapper">
+      <div class="mermaid">
 %%{init: {
   "theme": "base",
   "themeVariables": {
-    "primaryColor": "#6366f1",
-    "primaryTextColor": "#fff",
-    "primaryBorderColor": "#4f46e5",
-    "lineColor": "#64748b",
-    "secondaryColor": "#f1f5f9",
-    "tertiaryColor": "#fff",
-    "fontSize": "13px"
+    "fontFamily": "Segoe UI",
+    "primaryColor": "#f3f4f6",
+    "primaryTextColor": "#111827",
+    "primaryBorderColor": "#d1d5db",
+    "lineColor": "#4b5563",
+    "fontSize": "14px"
   },
   "flowchart": {
-    "rankSpacing": 36,
-    "nodeSpacing": 18,
-    "curve": "linear",
-    "padding": 8
+    "rankSpacing": 50,
+    "nodeSpacing": 30,
+    "curve": "basis",
+    "padding": 15
   }
 }}%%
 flowchart TD
-    START([User Opens System]) --> WHO{Who are you?}
+    classDef startend fill:#f59e0b,color:#fff,stroke:#d97706,stroke-width:2px,font-weight:bold
+    classDef admin fill:#6366f1,color:#fff,stroke:#4f46e5,stroke-width:2px
+    classDef user fill:#10b981,color:#fff,stroke:#059669,stroke-width:2px
+    classDef decision fill:#64b5f6,color:#fff,stroke:#1e88e5,stroke-width:2px
 
-    WHO -->|Admin| A1[Login as Admin]
-    A1 --> A2[Add Station]
-    A2 --> A3[Add Train + Coaches + Seats]
-    A3 --> A4[Create Route\nSource → Destination]
-    A4 --> A5[Create Schedule\nTrain + Route + Date + Time]
-    A5 --> A6{System Ready\nfor Bookings?}
+    START([🚀 Start System]):::startend --> ROLE{Who are you?}:::decision
+    
+    %% ==========================================
+    %% ADMIN PATH
+    %% ==========================================
+    ROLE -->|Admin| A_LOGIN[Login as Admin]:::admin
+    
+    A_LOGIN --> A_DASH["Manage Overall Railway Operations
+    (Template: dashboard.html)"]:::admin
+    
+    A_DASH --> A_MANAGE{"Select Management Area"}:::decision
+    
+    A_MANAGE -->|Trains| A_TRAINS["Add, Edit, Delete Trains & Seats
+    [Tables: Trains, Seats]
+    (Route: trains.py)
+    (Template: trains.html)"]:::admin
+    
+    A_MANAGE -->|Stations| A_STATIONS["Add, Edit, Delete Stations
+    [Table: Stations]
+    (Route: stations.py)
+    (Template: stations.html)"]:::admin
+    
+    A_MANAGE -->|Routes| A_ROUTES["Add, Edit, Delete Routes
+    [Table: Routes]
+    (Route: route.py)
+    (Template: routes.html)"]:::admin
+    
+    A_MANAGE -->|Schedules| A_SCHEDULES["Add, Edit, Delete Schedules
+    [Table: Schedules]
+    (Route: schedules.py)
+    (Template: schedules.html)"]:::admin
+    
+    A_TRAINS --> A_END([✅ Admin Operations Complete]):::startend
+    A_STATIONS --> A_END
+    A_ROUTES --> A_END
+    A_SCHEDULES --> A_END
 
-    WHO -->|User| P1[Register Account\nName · Email · Phone · CNIC]
-    P1 --> P2{Valid Info?}
-    P2 -->|No| P1
-    P2 -->|Yes| P3[Account Created]
 
-    P3 --> P4[Search Available Trains\nSource & Destination]
-    A6 -.->|Schedules available| P4
-    P4 --> P5[View Schedules + Seat Count]
-    P5 --> P6[Select Schedule]
-    P6 --> P7[View Available Seats]
-    P7 --> P8[Select Seat]
-    P8 --> P9[Confirm Booking]
+    %% ==========================================
+    %% USER (PASSENGER) PATH
+    %% ==========================================
+    ROLE -->|User| U_LOGIN["Register / Login
+    [Table: Passengers]
+    (Route: passengers.py)
+    (Template: passengers.html)"]:::user
+    
+    U_LOGIN --> U_VIEW["View Available Trains, Routes, & Schedules
+    [Tables: Trains, Routes, Schedules, Stations]
+    (Route: views.py)"]:::user
+    
+    U_VIEW --> U_ACTION{"What to do?"}:::decision
+    
+    U_ACTION -->|Book Ticket| U_BOOK["Book Train Ticket / Seat
+    [Tables: Bookings, Seats]
+    (Route: bookings.py)
+    (Template: bookings.html)"]:::user
+    
+    U_ACTION -->|Check Status| U_DETAILS["View Booking Details & Travel Schedules
+    [Tables: Bookings, Schedules]"]:::user
+    
+    U_BOOK --> U_DETAILS
+    
+    U_DETAILS --> U_CANCEL_DECISION{"Want to Cancel?"}:::decision
+    
+    U_CANCEL_DECISION -->|Yes| U_CANCEL["Cancel Existing Booking
+    [Tables: Cancellations, Bookings, Seats]
+    (Route: cancellations.py)"]:::user
+    
+    U_CANCEL_DECISION -->|No| U_END([✅ User Flow Complete]):::startend
+    U_CANCEL --> U_END
 
-    P9 --> P10{Seat Still Free?}
-    P10 -->|No| P7
-    P10 -->|Yes| P11[Booking Created\nStatus: PENDING]
-    P11 --> P12[Trigger: Seat → BOOKED]
+      </div>
+    </div>
 
-    P12 --> P13[Proceed to Payment]
-    P13 --> P14[Payment Submitted]
-    P14 --> P15[Trigger: Booking → CONFIRMED\nAudit Log Created]
-
-    P15 --> P16{Cancel Booking?}
-    P16 -->|No| P17[Trip Confirmed!\nJourney on Departure Date]
-    P16 -->|Yes| P18[Request Cancellation]
-
-    P18 --> P19{Hours Before Departure?}
-    P19 -->|More than 24h| P20[100% Refund]
-    P19 -->|12 – 24h| P21[50% Refund]
-    P19 -->|Less than 12h| P22[No Refund]
-    P20 --> P23[Booking CANCELLED\nSeat Released]
-    P21 --> P23
-    P22 --> P23
-
-    A5 --> AD1[Analytics Dashboard]
-    AD1 --> AD2[Revenue by Route]
-    AD1 --> AD3[Train Occupancy %]
-    AD1 --> AD4[Pending Refunds]
-    AD1 --> AD5[Firebase Backup]
-
-    P17 --> DONE([Flow Complete])
-    P23 --> DONE
-
-    style START fill:#6366f1,color:#fff,stroke:none
-    style DONE  fill:#10b981,color:#fff,stroke:none
-    style A6    fill:#f59e0b,color:#fff,stroke:none
-    style P10   fill:#f59e0b,color:#fff,stroke:none
-    style P11   fill:#fbbf24,color:#000,stroke:none
-    style P12   fill:#8b5cf6,color:#fff,stroke:none
-    style P15   fill:#10b981,color:#fff,stroke:none
-    style P19   fill:#f97316,color:#fff,stroke:none
-    style P23   fill:#ef4444,color:#fff,stroke:none
-    style AD5   fill:#0ea5e9,color:#fff,stroke:none
-    style P2    fill:#64748b,color:#fff,stroke:none
-    style P16   fill:#64748b,color:#fff,stroke:none
+    <div class="note">
+      <strong>📌 Allowed Entities Overview:</strong><br>
+      This diagram strictly utilizes only the requested Database Tables:<br>
+      • <strong>Trains</strong> • <strong>Stations</strong> • <strong>Schedules</strong> • <strong>Routes</strong> • <strong>Bookings</strong> • <strong>Passengers</strong> • <strong>Cancellations</strong> • <strong>Seats</strong><br><br>
+      It also maps the specific responsibilities of the <strong>Admin</strong> (System Operations, CRUD for entities) and the <strong>User</strong> (Viewing routes, Booking tickets, Cancelling) to their respective Application Templates and Routes.
     </div>
   </div>
 
   <script>
-    mermaid.initialize({
-      startOnLoad: true,
-      securityLevel: 'loose'
-    });
+    mermaid.initialize({ startOnLoad: true, securityLevel: 'loose' });
   </script>
 </body>
 </html>
